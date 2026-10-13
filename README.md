@@ -1,44 +1,40 @@
-# \# Portfolio Map
+# Portfolio Map
 
-# 
+Mạng xã hội bản đồ portfolio cho sinh viên: sinh viên thả ghim dự án trên bản đồ, công ty công nghệ xem và liên hệ.
 
-# Mạng xã hội bản đồ portfolio cho sinh viên: sinh viên thả ghim dự án trên bản đồ, công ty xem và liên hệ.
+## Công nghệ
 
-# 
+- Backend: ASP.NET Core Web API (.NET 10), Entity Framework Core, SQL Server
+- Frontend: React, Vite, TypeScript, Leaflet
+- Node.js: bản LTS (chạy `node -v` trên máy bạn rồi ghi số phiên bản vào đây)
 
-# \## Công nghệ
+## Cấu trúc thư mục
 
-# \- Backend: ASP.NET Core Web API (.NET <số phiên bản>), SQL Server
+- `backend/PortfolioMap.Api/`: solution và project API (mở file solution bằng Visual Studio)
+- `frontend/`: giao diện React (mở bằng VS Code)
+- `docs/`: tài liệu, quy ước, bộ Postman
 
-# \- Frontend: React + Vite + TypeScript, Leaflet
+## Cách chạy
 
-# \- Node.js <số phiên bản LTS>
+### Backend
 
-# 
+1. Cài .NET SDK, Visual Studio, SQL Server Express và SSMS.
+2. Vào thư mục `backend/PortfolioMap.Api/PortfolioMap.Api/`, copy `appsettings.example.json` thành `appsettings.Development.json`, rồi sửa `Server=` thành tên SQL Server trên máy bạn (xem trong cửa sổ Connect của SSMS).
+3. Mở solution bằng Visual Studio, vào Tools, NuGet Package Manager, Package Manager Console, chạy `Update-Database`.
+4. Bấm chạy (profile https). Mở `https://localhost:<cổng>/scalar/v1` để xem và thử API. Số cổng xem trong `Properties/launchSettings.json`.
 
-# \## Cấu trúc
+### Frontend
 
-# \- backend/  : API (mở file backend/PortfolioMap/PortfolioMap.slnx bằng Visual Studio)
+1. Mở terminal trong thư mục `frontend`.
+2. Chạy `npm install`.
+3. Chạy `copy .env.example .env`, rồi sửa `VITE_API_URL` thành địa chỉ backend ở bước trên.
+4. Chạy `npm run dev`, mở `http://localhost:5173`.
 
-# \- frontend/ : giao diện (mở bằng VS Code)
+## Quy ước làm việc
 
-# \- docs/     : tài liệu
+Đọc `docs/QUY-UOC.md` trước khi bắt đầu:
 
-# 
-
-# \## Cách chạy
-
-# Backend: mở solution bằng Visual Studio, bấm chạy (profile https).
-
-# Frontend: cd frontend, rồi npm install, copy .env.example thành .env, sửa VITE\_API\_URL cho đúng, rồi npm run dev.
-
-# 
-
-# \## Quy ước Git
-
-# \- Không push thẳng main và develop, luôn làm qua Pull Request.
-
-# \- Tên nhánh: feature/ten-viec, fix/ten-loi.
-
-# \- Commit: loại(chức năng): mô tả, ví dụ feat(auth): thêm API đăng nhập.
-
+- Không push thẳng `main` và `develop`, luôn làm qua Pull Request.
+- Tên nhánh lấy y nguyên từ thẻ Trello, ví dụ `feature/auth-register-contract`.
+- Commit theo dạng `loại(chức-năng): mô tả`, ví dụ `feat(auth): thêm API đăng ký`.
+- Mỗi người có SQL Server riêng, cấu trúc bảng đi qua thư mục `Migrations`.
