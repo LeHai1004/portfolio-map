@@ -237,6 +237,82 @@ namespace PortfolioMap.Api.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("PortfolioMap.Api.Models.CompanyProfile", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<string>("CompanyName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LogoUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Website")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("CompanyProfiles");
+                });
+
+            modelBuilder.Entity("PortfolioMap.Api.Models.ContactMessage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("FromUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ToUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FromUserId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("ToUserId");
+
+                    b.ToTable("ContactMessages");
+                });
+
             modelBuilder.Entity("PortfolioMap.Api.Models.Project", b =>
                 {
                     b.Property<int>("Id")
@@ -350,6 +426,51 @@ namespace PortfolioMap.Api.Migrations
                     b.ToTable("ProjectTags");
                 });
 
+            modelBuilder.Entity("PortfolioMap.Api.Models.SavedProject", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("SavedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("UserId", "ProjectId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.ToTable("SavedProjects");
+                });
+
+            modelBuilder.Entity("PortfolioMap.Api.Models.StudentProfile", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("GithubUrl")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<string>("LinkedInUrl")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<string>("Major")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int?>("UniversityId")
+                        .HasColumnType("int");
+
+                    b.HasKey("UserId");
+
+                    b.HasIndex("UniversityId");
+
+                    b.ToTable("StudentProfiles");
+                });
+
             modelBuilder.Entity("PortfolioMap.Api.Models.Tag", b =>
                 {
                     b.Property<int>("Id")
@@ -447,6 +568,43 @@ namespace PortfolioMap.Api.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("PortfolioMap.Api.Models.CompanyProfile", b =>
+                {
+                    b.HasOne("PortfolioMap.Api.Models.AppUser", "User")
+                        .WithOne()
+                        .HasForeignKey("PortfolioMap.Api.Models.CompanyProfile", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("PortfolioMap.Api.Models.ContactMessage", b =>
+                {
+                    b.HasOne("PortfolioMap.Api.Models.AppUser", "FromUser")
+                        .WithMany()
+                        .HasForeignKey("FromUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PortfolioMap.Api.Models.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PortfolioMap.Api.Models.AppUser", "ToUser")
+                        .WithMany()
+                        .HasForeignKey("ToUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("FromUser");
+
+                    b.Navigation("Project");
+
+                    b.Navigation("ToUser");
+                });
+
             modelBuilder.Entity("PortfolioMap.Api.Models.Project", b =>
                 {
                     b.HasOne("PortfolioMap.Api.Models.AppUser", "Owner")
@@ -492,6 +650,43 @@ namespace PortfolioMap.Api.Migrations
                     b.Navigation("Project");
 
                     b.Navigation("Tag");
+                });
+
+            modelBuilder.Entity("PortfolioMap.Api.Models.SavedProject", b =>
+                {
+                    b.HasOne("PortfolioMap.Api.Models.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PortfolioMap.Api.Models.AppUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Project");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("PortfolioMap.Api.Models.StudentProfile", b =>
+                {
+                    b.HasOne("PortfolioMap.Api.Models.University", "University")
+                        .WithMany()
+                        .HasForeignKey("UniversityId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PortfolioMap.Api.Models.AppUser", "User")
+                        .WithOne()
+                        .HasForeignKey("PortfolioMap.Api.Models.StudentProfile", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("University");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("PortfolioMap.Api.Models.Project", b =>
