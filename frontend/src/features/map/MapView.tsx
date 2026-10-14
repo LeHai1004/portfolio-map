@@ -1,6 +1,9 @@
+import MarkerClusterGroup from "react-leaflet-cluster";
 import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 import { Icon } from "leaflet";
 import "leaflet/dist/leaflet.css";
+import "leaflet.markercluster/dist/MarkerCluster.css";
+import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import { useQuery } from "@tanstack/react-query";
 import { getMapPins } from "../../api/mapApi";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
@@ -34,15 +37,17 @@ export default function MapView() {
         attribution="&copy; OpenStreetMap"
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      {pins.map((pin) => (
-        <Marker key={pin.id} position={[pin.lat, pin.lng]} icon={pinIcon}>
-          <Popup>
-            <strong>{pin.title}</strong>
-            <br />
-            {pin.type}
-          </Popup>
-        </Marker>
-      ))}
+      <MarkerClusterGroup chunkedLoading>
+        {pins.map((pin) => (
+          <Marker key={pin.id} position={[pin.lat, pin.lng]} icon={pinIcon}>
+            <Popup>
+              <strong>{pin.title}</strong>
+              <br />
+              {pin.type}
+            </Popup>
+          </Marker>
+        ))}
+      </MarkerClusterGroup>
     </MapContainer>
   );
 }

@@ -42,7 +42,17 @@ const mockPins: MapPin[] = [
   },
 ];
 
+const types = ["Web", "Mobile", "Game", "AI"];
+const manyPins: MapPin[] = Array.from({ length: 40 }, (_, i) => ({
+  id: 100 + i,
+  title: `Dự án mẫu ${i + 1}`,
+  lat: 16.0544 + (Math.random() - 0.5) * 0.08,
+  lng: 108.2022 + (Math.random() - 0.5) * 0.08,
+  type: types[i % 4],
+  thumbnailUrl: "",
+}));
+
 // Hiện trả dữ liệu giả. Khi backend xong chỉ sửa bên trong hàm này
 export async function getMapPins(): Promise<MapPin[]> {
-  return mockPins;
+  return [...mockPins, ...manyPins];
 }
