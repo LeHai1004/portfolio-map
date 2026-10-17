@@ -1,10 +1,10 @@
-namespace YourProject.Dtos.Auth
+namespace PortfolioMap.Api.Dtos.Auth
 {
-	public class RegisterResponse
-	{
-		public int Id { get; set; }
-		public string Email { get; set; }
-		public string FullName { get; set; }
-		public string Role { get; set; }
-	}
+    public class RegisterResponse
+    {
+        public int Id { get; set; }
+        public string Email { get; set; }
+        public string FullName { get; set; }
+        public string Role { get; set; }
+    }
 }

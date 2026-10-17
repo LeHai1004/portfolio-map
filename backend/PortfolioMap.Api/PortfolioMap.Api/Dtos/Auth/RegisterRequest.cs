@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace YourProject.Dtos.Auth
+namespace PortfolioMap.Api.Dtos.Auth
 {
     public class RegisterRequest
     {

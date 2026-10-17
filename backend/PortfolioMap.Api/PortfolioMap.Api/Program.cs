@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PortfolioMap.Api.Data;
 using Scalar.AspNetCore;
+using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,7 +22,27 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod());
 });
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+.ConfigureApiBehaviorOptions(options =>
+ {
+     options.InvalidModelStateResponseFactory = context =>
+     {
+         // Lấy danh sách lỗi từ ModelState và ép key về camelCase (vd: 'Email' -> 'email')
+         var errors = context.ModelState
+             .Where(e => e.Value.Errors.Count > 0)
+             .ToDictionary(
+                 kvp => char.ToLower(kvp.Key[0]) + kvp.Key.Substring(1),
+                 kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
+             );
+
+         return new BadRequestObjectResult(new
+         {
+             message = "Dữ liệu sai",
+             errors = errors
+         });
+     };
+ });
+
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
