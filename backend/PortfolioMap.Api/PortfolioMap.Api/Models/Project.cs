@@ -6,8 +6,8 @@ public class Project
 {
     public int Id { get; set; }
 
-    public string OwnerId { get; set; } = string.Empty;
-    public AppUser? Owner { get; set; }
+    public int OwnerId { get; set; }
+    public AppUser? Owner { get; set; } = null!;
 
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }

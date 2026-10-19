@@ -1,7 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Security.Claims;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using PortfolioMap.Api.Dtos.Auth;
-using System;
-using PortfolioMap.Api.Dtos.Auth;
+using PortfolioMap.Api.Services;
 
 namespace PortfolioMap.Api.Controllers
 {
@@ -9,78 +11,71 @@ namespace PortfolioMap.Api.Controllers
     [ApiController]
     public class AuthController : ControllerBase
     {
+        private readonly IAuthService _authService;
+
+        // Tiêm IAuthService vào Controller
+        public AuthController(IAuthService authService)
+        {
+            _authService = authService;
+        }
+
         // 1. POST /api/auth/register
         [HttpPost("register")]
-        public IActionResult Register([FromBody] RegisterRequest request)
+        public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {
-            // Giả lập 409: Tài khoản đã tồn tại
-            if (request.Email == "exist@example.com")
+            var result = await _authService.RegisterAsync(request);
+            if (!result.Success)
             {
-                return Conflict(new { message = "Email đã tồn tại" });
+                if (result.StatusCode == 409)
+                {
+                    return Conflict(new { message = result.ErrorMessage });
+                }
+                return BadRequest(new { message = result.ErrorMessage });
             }
 
-            // Trả về 201: Đăng ký thành công
-            var response = new RegisterResponse
-            {
-                Id = 1,
-                Email = request.Email,
-                FullName = request.FullName,
-                Role = request.Role
-            };
-
-            return Created("", response);
+            return StatusCode(201, result.Data);
         }
 
         // 2. POST /api/auth/login
         [HttpPost("login")]
-        public IActionResult Login([FromBody] LoginRequest request)
+        public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            // Giả lập 403: Tài khoản bị khóa
-            if (request.Email == "locked@example.com")
+            var result = await _authService.LoginAsync(request);
+            if (!result.Success)
             {
-                return StatusCode(403, new { message = "Tài khoản bị khóa" });
-            }
-
-            // Giả lập 401: Sai email hoặc mật khẩu
-            if (request.Email == "wrong@example.com" || request.Password == "wrongpassword")
-            {
-                return Unauthorized(new { message = "Sai email hoặc mật khẩu" });
-            }
-
-            // Trả về 200: Đăng nhập thành công với token ảo
-            var response = new LoginResponse
-            {
-                AccessToken = "eyJhbGciOiJIUzI1NiIsInR5c...fakeToken",
-                ExpiresAt = DateTime.UtcNow.AddDays(7),
-                User = new UserDto
+                if (result.StatusCode == 401)
                 {
-                    Id = 1,
-                    Email = request.Email,
-                    FullName = "Nguyễn Văn A",
-                    Role = "Student",
-                    AvatarUrl = "https://example.com/avatar.jpg"
+                    return Unauthorized(new { message = result.ErrorMessage });
                 }
-            };
+                if (result.StatusCode == 403)
+                {
+                    return StatusCode(403, new { message = result.ErrorMessage });
+                }
+                return BadRequest(new { message = result.ErrorMessage });
+            }
 
-            return Ok(response);
+            return Ok(result.Data);
         }
 
         // 3. GET /api/auth/me
         [HttpGet("me")]
-        // [Authorize] // CHƯA GẮN: Thẻ hiện thực sẽ mở comment dòng này
-        public IActionResult GetMe()
+        [Authorize] // Đã gắn Authorize để bắt buộc gửi kèm JWT Token
+        public async Task<IActionResult> GetMe()
         {
-            // Tạm thời trả về 200 mặc định vì chưa có JWT để kiểm tra 401
-            var user = new UserDto
+            // Lấy UserId từ Claims trong Token JWT sau khi đã giải mã thành công
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
             {
-                Id = 1,
-                Email = "a@example.com",
-                FullName = "Nguyễn Văn A",
-                Role = "Student",
-                AvatarUrl = "https://example.com/avatar.jpg"
-            };
+                return Unauthorized(new { message = "Chưa đăng nhập hoặc token sai" });
+            }
 
-            return Ok(user);
+            var userDto = await _authService.GetMeAsync(userId);
+            if (userDto == null)
+            {
+                return Unauthorized(new { message = "Không tìm thấy người dùng" });
+            }
+
+            return Ok(userDto);
         }
     }
 }
