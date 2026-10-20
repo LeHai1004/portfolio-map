@@ -7,7 +7,7 @@ namespace PortfolioMap.Api.Controllers;
 
 /// <summary>
 /// HỢP ĐỒNG API dự án (trả dữ liệu mẫu, chưa truy cập DB, chưa upload thật).
-/// TODO khi S1-03 xong: thêm [Authorize(Roles = "Student")] cho POST/PUT/mine/images,
+/// TODO khi S1-08 xong: thêm [Authorize(Roles = "Student")] cho POST/PUT/mine/images,
 /// [Authorize(Roles = "Student,Admin")] cho DELETE, và lấy userId từ token thay cho CurrentUserId.
 /// Ràng buộc {id:int} giúp "mine" và "nearby" không bị nhầm thành id.
 /// </summary>

@@ -9,12 +9,12 @@ namespace PortfolioMap.Api.Mock;
 /// </summary>
 public static class MockProjectData
 {
-    public const int CurrentUserId = 1;
+    public const string CurrentUserId = "1";
     public const int NewProjectId = 100;
     public const int NewImageId = 100;
 
-    public static readonly OwnerDto OwnerA = new(1, "Nguyễn Văn A", "/uploads/avatars/1.jpg");
-    public static readonly OwnerDto OwnerB = new(2, "Trần Thị B", null);
+    public static readonly OwnerDto OwnerA = new("1", "Nguyễn Văn A", "/uploads/avatars/1.jpg");
+    public static readonly OwnerDto OwnerB = new("2", "Trần Thị B", null);
 
     public static readonly IReadOnlyList<UniversityDto> Universities = new List<UniversityDto>
     {
