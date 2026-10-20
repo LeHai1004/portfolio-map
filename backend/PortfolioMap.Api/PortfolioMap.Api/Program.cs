@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using PortfolioMap.Api.Data;
 using Scalar.AspNetCore;
+using System.Text.Json;
+using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,7 +23,23 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod());
 });
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        // Mọi lỗi 400 do kiểm tra dữ liệu đều trả đúng dạng của nhóm: message + errors
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var errors = context.ModelState
+                .Where(e => e.Value is { Errors.Count: > 0 })
+                .ToDictionary(
+                    e => JsonNamingPolicy.CamelCase.ConvertName(e.Key),
+                    e => e.Value!.Errors
+                        .Select(x => string.IsNullOrEmpty(x.ErrorMessage) ? "Giá trị không hợp lệ" : x.ErrorMessage)
+                        .ToArray());
+
+            return new BadRequestObjectResult(new { message = "Dữ liệu không hợp lệ", errors });
+        };
+    });
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
