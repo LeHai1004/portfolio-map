@@ -26,7 +26,8 @@ public class ProjectsController : ControllerBase
     {
         if (ValidateReferences(request) is { } error) return BadRequest(error);
 
-        var dto = MockProjectData.FromRequest(MockProjectData.NewProjectId, request, MockProjectData.OwnerA, null);
+        var dto = MockProjectData.FromRequest(MockProjectData.NextProjectId(), request, MockProjectData.OwnerA, null);
+        MockProjectData.Add(dto);
         return CreatedAtAction(nameof(GetById), new { id = dto.Id }, dto);
     }
 
@@ -134,10 +135,13 @@ public class ProjectsController : ControllerBase
 
     private static ApiErrorResponse ForbiddenError() => new("Bạn không có quyền thao tác dự án này");
 
-    /// <summary>Kiểm tra universityId và tagIds có tồn tại (bản thật sẽ hỏi DB).</summary>
+    /// <summary>Kiểm tra type, universityId và tagIds hợp lệ (bản thật sẽ hỏi DB cho phần id).</summary>
     private static ApiErrorResponse? ValidateReferences(ProjectUpsertRequest r)
     {
         var errors = new Dictionary<string, string[]>();
+
+        if (r.Type is { } type && !Enum.IsDefined(type))
+            errors["type"] = new[] { "Loại dự án không hợp lệ. Chỉ nhận: Web, Mobile, Game, AI, Other" };
 
         if (r.UniversityId is { } uid && MockProjectData.Universities.All(u => u.Id != uid))
             errors["universityId"] = new[] { "Trường không tồn tại" };

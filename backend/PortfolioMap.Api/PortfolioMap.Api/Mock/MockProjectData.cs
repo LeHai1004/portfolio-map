@@ -12,6 +12,17 @@ public static class MockProjectData
     public const string CurrentUserId = "1";
     public const int NewProjectId = 100;
     public const int NewImageId = 100;
+    private static int _nextProjectId = NewProjectId - 1;
+    private static readonly object Gate = new();
+
+    /// <summary>Id cho dự án mới tạo, tăng dần từ 100.</summary>
+    public static int NextProjectId() => Interlocked.Increment(ref _nextProjectId);
+
+    /// <summary>Lưu dự án vừa POST vào danh sách mẫu để GET /api/projects/{id} thấy được.</summary>
+    public static void Add(ProjectDetailDto project)
+    {
+        lock (Gate) Projects.Add(project);
+    }
 
     public static readonly OwnerDto OwnerA = new("1", "Nguyễn Văn A", "/uploads/avatars/1.jpg");
     public static readonly OwnerDto OwnerB = new("2", "Trần Thị B", null);
