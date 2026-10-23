@@ -83,6 +83,8 @@ Quyền: Public, Login, hoặc đúng vai trò.
 | GET | /api/contacts/sent | Đã gửi | Company |
 | PUT | /api/contacts/{id}/read | Đánh dấu đã đọc | Student |
 
+Mã trạng thái trong hợp đồng: 200, 201, 400, 401, 403, 404, 409. Đăng nhập hoặc lấy thông tin `/api/auth/me` với tài khoản chưa được gán vai trò trả 403; xung đột khi tạo hoặc gán vai trò trong quá trình đăng ký trả 409.
+
 Làm thêm: like, comment (F6); /api/admin/projects, /api/admin/users (F7).
 
 ## Cách làm: API-first
@@ -93,6 +95,7 @@ Mỗi chức năng đi qua 2 PR: (1) Hợp đồng: DTO và controller trả d�
 
 - Xong: khung backend, migration, khung frontend, bản đồ, gom cụm (PR #12), form thả ghim (PR #13), hướng dẫn Copilot (PR #19).
 - Đang review: PR #14, #15 (auth của Quốc), #16 (hợp đồng dự án), #17 (hợp đồng pins).
+- F1 chưa được coi là hoàn tất cho đến khi `/api/auth/me` được bảo vệ bằng `[Authorize]` và kiểm chứng chỉ truy cập được với token hợp lệ.
 - Chờ: API pins thật để nối bản đồ theo khung nhìn.
 - Còn lại: nối DB cho F1, F2, F4, F5; seed data; Postman; test case; làm thêm F6, F7; báo cáo và slide.
 
