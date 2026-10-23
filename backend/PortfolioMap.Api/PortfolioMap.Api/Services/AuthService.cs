@@ -92,7 +92,7 @@ namespace PortfolioMap.Api.Services
                     return new ServiceResult<RegisterResponse>
                     {
                         Success = false,
-                        StatusCode = 500,
+                        StatusCode = 409,
                         Message = "Không thể tạo role cho tài khoản",
                         Errors = createRoleResult.Errors
                             .GroupBy(error => error.Code)
@@ -108,7 +108,7 @@ namespace PortfolioMap.Api.Services
                 return new ServiceResult<RegisterResponse>
                 {
                     Success = false,
-                    StatusCode = 500,
+                    StatusCode = 409,
                     Message = "Không thể gán role cho tài khoản",
                     Errors = addToRoleResult.Errors
                         .GroupBy(error => error.Code)
@@ -159,7 +159,18 @@ namespace PortfolioMap.Api.Services
             }
 
             var roles = await _userManager.GetRolesAsync(user);
-            string userRole = roles.Count > 0 ? roles[0] : "Student";
+            if (roles.Count == 0)
+            {
+                return new ServiceResult<LoginResponse>
+                {
+                    Success = false,
+                    StatusCode = 403,
+                    Message = "Tài khoản chưa được gán vai trò",
+                    Errors = new { }
+                };
+            }
+
+            string userRole = roles[0];
 
             // Sinh Token JWT thật sống 120 phút
             var expiresAt = DateTime.UtcNow.AddMinutes(120);
@@ -202,7 +213,18 @@ namespace PortfolioMap.Api.Services
             }
 
             var roles = await _userManager.GetRolesAsync(user);
-            string userRole = roles.Count > 0 ? roles[0] : "Student";
+            if (roles.Count == 0)
+            {
+                return new ServiceResult<UserDto>
+                {
+                    Success = false,
+                    StatusCode = 403,
+                    Message = "Tài khoản chưa được gán vai trò",
+                    Errors = new { }
+                };
+            }
+
+            string userRole = roles[0];
 
             var userDto = new UserDto
             {

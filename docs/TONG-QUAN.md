@@ -83,6 +83,8 @@ Quyền: Public, Login, hoặc đúng vai trò.
 | GET | /api/contacts/sent | Đã gửi | Company |
 | PUT | /api/contacts/{id}/read | Đánh dấu đã đọc | Student |
 
+Mã trạng thái trong hợp đồng: 200, 201, 400, 401, 403, 404, 409. Đăng nhập hoặc lấy thông tin `/api/auth/me` với tài khoản chưa được gán vai trò trả 403; xung đột khi tạo hoặc gán vai trò trong quá trình đăng ký trả 409.
+
 Làm thêm: like, comment (F6); /api/admin/projects, /api/admin/users (F7).
 
 ## Cách làm: API-first
