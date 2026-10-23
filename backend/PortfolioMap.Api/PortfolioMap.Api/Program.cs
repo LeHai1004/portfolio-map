@@ -6,8 +6,9 @@ using PortfolioMap.Api.Data;
 using PortfolioMap.Api.Models;
 using PortfolioMap.Api.Services;
 using Scalar.AspNetCore;
-using Microsoft.AspNetCore.Mvc;
 using System.Text;
+using System.Text.Json;
+using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -99,26 +100,21 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddControllers()
-.ConfigureApiBehaviorOptions(options =>
- {
-     options.InvalidModelStateResponseFactory = context =>
-     {
-         // Lấy danh sách lỗi từ ModelState và ép key về camelCase (vd: 'Email' -> 'email')
-         var errors = context.ModelState
-             .Where(e => e.Value.Errors.Count > 0)
-             .ToDictionary(
-                 kvp => char.ToLower(kvp.Key[0]) + kvp.Key.Substring(1),
-                 kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
-             );
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var errors = context.ModelState
+                .Where(e => e.Value is { Errors.Count: > 0 })
+                .ToDictionary(
+                    e => JsonNamingPolicy.CamelCase.ConvertName(e.Key),
+                    e => e.Value!.Errors
+                        .Select(x => string.IsNullOrEmpty(x.ErrorMessage) ? "Giá trị không hợp lệ" : x.ErrorMessage)
+                        .ToArray());
 
-         return new BadRequestObjectResult(new
-         {
-             message = "Dữ liệu sai",
-             errors = errors
-         });
-     };
- });
-
+            return new BadRequestObjectResult(new { message = "Dữ liệu không hợp lệ", errors });
+        };
+    });
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
