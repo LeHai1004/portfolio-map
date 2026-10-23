@@ -26,11 +26,7 @@ namespace PortfolioMap.Api.Controllers
             var result = await _authService.RegisterAsync(request);
             if (!result.Success)
             {
-                if (result.StatusCode == 409)
-                {
-                    return Conflict(new { message = result.ErrorMessage });
-                }
-                return BadRequest(new { message = result.ErrorMessage });
+                return StatusCode(result.StatusCode, new { message = result.ErrorMessage, errors = result.Errors });
             }
 
             return StatusCode(201, result.Data);
@@ -43,15 +39,7 @@ namespace PortfolioMap.Api.Controllers
             var result = await _authService.LoginAsync(request);
             if (!result.Success)
             {
-                if (result.StatusCode == 401)
-                {
-                    return Unauthorized(new { message = result.ErrorMessage });
-                }
-                if (result.StatusCode == 403)
-                {
-                    return StatusCode(403, new { message = result.ErrorMessage });
-                }
-                return BadRequest(new { message = result.ErrorMessage });
+                return StatusCode(result.StatusCode, new { message = result.ErrorMessage, errors = result.Errors });
             }
 
             return Ok(result.Data);
@@ -66,16 +54,20 @@ namespace PortfolioMap.Api.Controllers
             var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
             {
-                return Unauthorized(new { message = "Chưa đăng nhập hoặc token sai" });
+                return Unauthorized(new
+                {
+                    message = "Chưa đăng nhập hoặc token sai",
+                    errors = new { }
+                });
             }
 
-            var userDto = await _authService.GetMeAsync(userId);
-            if (userDto == null)
+            var result = await _authService.GetMeAsync(userId);
+            if (!result.Success)
             {
-                return Unauthorized(new { message = "Không tìm thấy người dùng" });
+                return StatusCode(result.StatusCode, new { message = result.ErrorMessage, errors = result.Errors });
             }
 
-            return Ok(userDto);
+            return Ok(result.Data);
         }
     }
 }
