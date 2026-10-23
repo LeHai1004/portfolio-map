@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
@@ -67,18 +68,12 @@ namespace PortfolioMap.Api.Services
             var result = await _userManager.CreateAsync(user, request.Password);
             if (!result.Succeeded)
             {
-                var errorsDict = new Dictionary<string, string[]>();
-                foreach (var err in result.Errors)
-                {
-                    errorsDict[err.Code] = new[] { err.Description };
-                }
-
                 return new ServiceResult<RegisterResponse>
                 {
                     Success = false,
                     StatusCode = 400,
                     Message = "Đăng ký thất bại",
-                    Errors = errorsDict
+                    Errors = MapIdentityErrors(result.Errors, "email")
                 };
             }
 
@@ -94,9 +89,7 @@ namespace PortfolioMap.Api.Services
                         Success = false,
                         StatusCode = 409,
                         Message = "Không thể tạo role cho tài khoản",
-                        Errors = createRoleResult.Errors
-                            .GroupBy(error => error.Code)
-                            .ToDictionary(group => group.Key, group => group.Select(error => error.Description).ToArray())
+                        Errors = MapIdentityErrors(createRoleResult.Errors, "role")
                     };
                 }
             }
@@ -110,9 +103,7 @@ namespace PortfolioMap.Api.Services
                     Success = false,
                     StatusCode = 409,
                     Message = "Không thể gán role cho tài khoản",
-                    Errors = addToRoleResult.Errors
-                        .GroupBy(error => error.Code)
-                        .ToDictionary(group => group.Key, group => group.Select(error => error.Description).ToArray())
+                    Errors = MapIdentityErrors(addToRoleResult.Errors, "role")
                 };
             }
 
@@ -241,6 +232,13 @@ namespace PortfolioMap.Api.Services
                 StatusCode = 200,
                 Data = userDto
             };
+        }
+
+        private static Dictionary<string, string[]> MapIdentityErrors(IEnumerable<IdentityError> errors, string defaultField)
+        {
+            return errors
+                .GroupBy(error => error.Code.StartsWith("Password", StringComparison.Ordinal) ? "password" : defaultField)
+                .ToDictionary(group => group.Key, group => group.Select(error => error.Description).ToArray());
         }
 
         private string GenerateJwtToken(AppUser user, string role, DateTime expiresAt)
