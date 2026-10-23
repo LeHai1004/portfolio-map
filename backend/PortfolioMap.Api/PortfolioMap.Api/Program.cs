@@ -9,7 +9,6 @@ using PortfolioMap.Api.Models;
 using PortfolioMap.Api.Services;
 using Scalar.AspNetCore;
 using System.Text.Json;
-using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,7 +29,7 @@ builder.Services.AddIdentityCore<AppUser>(options =>
     options.Password.RequireUppercase = false;       // Tắt bắt buộc chữ hoa
     options.Password.RequireNonAlphanumeric = false; // Tắt bắt buộc ký tự đặc biệt
 })
-.AddRoles<IdentityRole<int>>()
+.AddRoles<IdentityRole>()
 .AddEntityFrameworkStores<AppDbContext>();
 
 // 3. Cấu hình JWT Authentication
@@ -61,6 +60,7 @@ builder.Services.AddAuthentication(options =>
 
 // 4. Đăng ký Dependency Injection cho AuthService
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddAuthorization();
 
 // 5. CORS: cho phép giao diện React (cổng 5173) gọi API
 const string CorsPolicy = "FrontendDev";
@@ -72,30 +72,7 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod());
 });
 
-<<<<<<< HEAD
 // 6. Controllers & Cấu hình phản hồi lỗi Validation theo quy chuẩn { message, errors }
-builder.Services.AddControllers()
-.ConfigureApiBehaviorOptions(options =>
-{
-    options.InvalidModelStateResponseFactory = context =>
-    {
-        // Lấy danh sách lỗi từ ModelState và ép key về camelCase (vd: 'Email' -> 'email')
-        var errors = context.ModelState
-            .Where(e => e.Value.Errors.Count > 0)
-            .ToDictionary(
-                kvp => char.ToLower(kvp.Key[0]) + kvp.Key.Substring(1),
-                kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
-            );
-
-        return new BadRequestObjectResult(new
-        {
-            message = "Dữ liệu sai",
-            errors = errors
-        });
-    };
-});
-
-=======
 builder.Services.AddControllers()
     .ConfigureApiBehaviorOptions(options =>
     {
@@ -113,7 +90,6 @@ builder.Services.AddControllers()
             return new BadRequestObjectResult(new { message = "Dữ liệu không hợp lệ", errors });
         };
     });
->>>>>>> ae80242a83fa65681849eecbf8379e8cf209bc82
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
@@ -121,13 +97,13 @@ var app = builder.Build();
 // 7. Tự động tạo 3 Role (Student, Company, Admin) khi khởi động nếu chưa có trong DB
 using (var scope = app.Services.CreateScope())
 {
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<int>>>();
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     string[] roles = ["Student", "Company", "Admin"];
     foreach (var role in roles)
     {
         if (!await roleManager.RoleExistsAsync(role))
         {
-            await roleManager.CreateAsync(new IdentityRole<int>(role));
+            await roleManager.CreateAsync(new IdentityRole(role));
         }
     }
 }

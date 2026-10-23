@@ -2,8 +2,8 @@ namespace PortfolioMap.Api.Models;
 
 public class StudentProfile
 {
-    public int UserId { get; set; }
-    public AppUser? User { get; set; } = null!;
+    public string UserId { get; set; } = string.Empty;
+    public AppUser? User { get; set; }
 
     public int? UniversityId { get; set; }
     public University? University { get; set; }

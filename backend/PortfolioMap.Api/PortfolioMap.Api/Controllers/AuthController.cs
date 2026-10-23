@@ -52,7 +52,7 @@ namespace PortfolioMap.Api.Controllers
         {
             // Lấy UserId từ Claims trong Token JWT sau khi đã giải mã thành công
             var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+            if (string.IsNullOrEmpty(userIdClaim))
             {
                 return Unauthorized(new
                 {
@@ -61,7 +61,7 @@ namespace PortfolioMap.Api.Controllers
                 });
             }
 
-            var result = await _authService.GetMeAsync(userId);
+            var result = await _authService.GetMeAsync(userIdClaim);
             if (!result.Success)
             {
                 return StatusCode(result.StatusCode, new { message = result.ErrorMessage, errors = result.Errors });

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
@@ -15,12 +16,12 @@ namespace PortfolioMap.Api.Services
     public class AuthService : IAuthService
     {
         private readonly UserManager<AppUser> _userManager;
-        private readonly RoleManager<IdentityRole<int>> _roleManager;
+        private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IConfiguration _configuration;
 
         public AuthService(
             UserManager<AppUser> userManager,
-            RoleManager<IdentityRole<int>> roleManager,
+            RoleManager<IdentityRole> roleManager,
             IConfiguration configuration)
         {
             _userManager = userManager;
@@ -58,7 +59,7 @@ namespace PortfolioMap.Api.Services
             if (!result.Succeeded)
             {
                 return (false, "Không thể tạo tài khoản", 400,
-                    new Dictionary<string, string[]> { ["account"] = result.Errors.Select(error => error.Description).ToArray() }, null);
+                    MapIdentityErrors(result.Errors, "email"), null);
             }
 
             // 4. Gán Role
@@ -75,7 +76,7 @@ namespace PortfolioMap.Api.Services
                     errors["account"] = cleanupResult.Errors.Select(error => error.Description).ToArray();
                 }
 
-                return (false, "Không thể hoàn tất đăng ký tài khoản", 500, errors, null);
+                return (false, "Không thể hoàn tất đăng ký tài khoản", 409, errors, null);
             }
 
             var response = new RegisterResponse
@@ -135,9 +136,9 @@ namespace PortfolioMap.Api.Services
             return (true, null, 200, new Dictionary<string, string[]>(), response);
         }
 
-        public async Task<(bool Success, string ErrorMessage, int StatusCode, IReadOnlyDictionary<string, string[]> Errors, UserDto Data)> GetMeAsync(int userId)
+        public async Task<(bool Success, string ErrorMessage, int StatusCode, IReadOnlyDictionary<string, string[]> Errors, UserDto Data)> GetMeAsync(string userId)
         {
-            var user = await _userManager.FindByIdAsync(userId.ToString());
+            var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
             {
                 return (false, "Không tìm thấy người dùng", 404, new Dictionary<string, string[]>(), null);
@@ -186,6 +187,13 @@ namespace PortfolioMap.Api.Services
             );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        private static Dictionary<string, string[]> MapIdentityErrors(IEnumerable<IdentityError> errors, string defaultField)
+        {
+            return errors
+                .GroupBy(error => error.Code.StartsWith("Password", StringComparison.Ordinal) ? "password" : defaultField)
+                .ToDictionary(group => group.Key, group => group.Select(error => error.Description).ToArray());
         }
     }
 }

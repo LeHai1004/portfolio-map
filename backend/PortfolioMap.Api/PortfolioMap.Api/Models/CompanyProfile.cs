@@ -2,8 +2,8 @@ namespace PortfolioMap.Api.Models;
 
 public class CompanyProfile
 {
-    public int UserId { get; set; }
-    public AppUser? User { get; set; } = null!;
+    public string UserId { get; set; } = string.Empty;
+    public AppUser? User { get; set; }
 
     public string CompanyName { get; set; } = string.Empty;
     public string? Website { get; set; }

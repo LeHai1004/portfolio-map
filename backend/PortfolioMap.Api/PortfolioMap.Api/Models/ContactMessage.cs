@@ -4,11 +4,11 @@ public class ContactMessage
 {
     public int Id { get; set; }
 
-    public int FromUserId { get; set; }
-    public AppUser? FromUser { get; set; } = null!;
+    public string FromUserId { get; set; } = string.Empty;
+    public AppUser? FromUser { get; set; }
 
-    public int ToUserId { get; set; }
-    public AppUser? ToUser { get; set; } = null!;
+    public string ToUserId { get; set; } = string.Empty;
+    public AppUser? ToUser { get; set; }
 
     public int? ProjectId { get; set; }
     public Project? Project { get; set; }
