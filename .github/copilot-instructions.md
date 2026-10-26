@@ -26,7 +26,7 @@ Mạng xã hội bản đồ portfolio: sinh viên thả ghim dự án lên bả
 - Không push thẳng main/develop. Nhánh: loại/chức-năng-việc-làm. PR vào develop, dưới 300 dòng.
 - Commit: loại(chức-năng): mô tả. Không commit appsettings.Development.json, .env.
 
-## Khi tôi nhờ review code
+## Khi tôi nói "review PR" (chỉ lúc đó mới áp dụng mục này)
 
 - Chỉ nhận xét, KHÔNG tự sửa file hay tạo file mới.
 - Kiểm tra: đúng hợp đồng và quy ước ở trên, đặt tên file/class, dạng lỗi, kiểu Id, bảo mật (không lộ chuỗi kết nối), phụ thuộc thẻ khác.
