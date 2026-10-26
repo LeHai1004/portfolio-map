@@ -21,6 +21,70 @@ export type CreateProjectResponse = {
   title: string;
 };
 
+export type ProjectDetailDto = {
+  id: number;
+  title: string;
+  description: string | null;
+  type: ProjectType;
+  latitude: number;
+  longitude: number;
+  addressText: string | null;
+  universityId: number | null;
+  universityName: string | null;
+  githubUrl: string | null;
+  demoUrl: string | null;
+  thumbnailUrl: string | null;
+  images: { id: number; imageUrl: string }[];
+  tags: { id: number; name: string }[];
+  owner: { id: string; fullName: string; avatarUrl: string | null };
+  viewCount: number;
+  createdAt: string;
+};
+
+const mockProjectDetails: Record<number, ProjectDetailDto> = {
+  1: {
+    id: 1,
+    title: "App quản lý chi tiêu",
+    description:
+      "Ứng dụng ghi chép thu chi cá nhân, theo dõi ngân sách và xem biểu đồ tổng hợp theo tháng.",
+    type: "Mobile",
+    latitude: 16.0738,
+    longitude: 108.1499,
+    addressText: "Đại học Bách Khoa - ĐH Đà Nẵng",
+    universityId: 1,
+    universityName: "Đại học Bách Khoa - ĐH Đà Nẵng",
+    githubUrl: "https://github.com/example/expense-app",
+    demoUrl: null,
+    thumbnailUrl: "/uploads/mock/1-1.jpg",
+    images: [
+      { id: 11, imageUrl: "/uploads/mock/1-1.jpg" },
+      { id: 12, imageUrl: "/uploads/mock/1-2.jpg" },
+    ],
+    tags: [
+      { id: 2, name: "C#" },
+      { id: 7, name: "Flutter" },
+    ],
+    owner: {
+      id: "1",
+      fullName: "Nguyễn Văn A",
+      avatarUrl: "/uploads/avatars/1.jpg",
+    },
+    viewCount: 120,
+    createdAt: "2026-10-03T12:00:00Z",
+  },
+};
+
+export async function getProjectById(
+  id: number,
+): Promise<ProjectDetailDto | null> {
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  return mockProjectDetails[id] ?? null;
+
+  // Khi backend sẵn sàng, thay dữ liệu giả bằng:
+  // const response = await api.get<ProjectDetailDto>(`/api/projects/${id}`);
+  // return response.data;
+}
+
 export async function createProject(
   data: CreateProjectRequest,
 ): Promise<CreateProjectResponse> {
