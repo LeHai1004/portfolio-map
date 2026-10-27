@@ -19,7 +19,7 @@ Mạng xã hội bản đồ portfolio cho sinh viên: sinh viên thả ghim d�
 ### Backend
 
 1. Cài .NET SDK, Visual Studio, SQL Server Express và SSMS.
-2. Vào thư mục `backend/PortfolioMap.Api/PortfolioMap.Api/`, copy `appsettings.example.json` thành `appsettings.Development.json`, rồi sửa `Server=` thành tên SQL Server trên máy bạn (xem trong cửa sổ Connect của SSMS).
+2. Vào thư mục `backend/PortfolioMap.Api/PortfolioMap.Api/`, copy `appsettings.example.json` thành `appsettings.Development.json`, rồi sửa `Server=` thành tên SQL Server trên máy bạn (xem trong cửa sổ Connect của SSMS). Thay `JwtSettings:Key` bằng khóa ngẫu nhiên ít nhất 32 byte; không commit file `appsettings.Development.json`.
 3. Mở solution bằng Visual Studio, vào Tools, NuGet Package Manager, Package Manager Console, chạy `Update-Database`.
 4. Bấm chạy (profile https). Mở `https://localhost:<cổng>/scalar/v1` để xem và thử API. Số cổng xem trong `Properties/launchSettings.json`.
 

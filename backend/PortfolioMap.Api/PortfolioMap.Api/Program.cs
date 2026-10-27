@@ -32,10 +32,14 @@ if (jwtKeyBytes.Length < 32)
 }
 
 builder.Services
-    .AddIdentity<AppUser, IdentityRole>(options =>
+    .AddIdentityCore<AppUser>(options =>
     {
         options.User.RequireUniqueEmail = true;
+        options.Password.RequiredLength = 8;
+        options.Password.RequireUppercase = false;
+        options.Password.RequireNonAlphanumeric = false;
     })
+    .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
 
@@ -88,6 +92,7 @@ builder.Services
     });
 
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddAuthorization();
 
 // 2. CORS: cho phép giao diện React (cổng 5173) gọi API
 const string CorsPolicy = "FrontendDev";
@@ -118,6 +123,25 @@ builder.Services.AddControllers()
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    foreach (var role in new[] { "Student", "Company", "Admin" })
+    {
+        if (await roleManager.RoleExistsAsync(role))
+        {
+            continue;
+        }
+
+        var result = await roleManager.CreateAsync(new IdentityRole(role));
+        if (!result.Succeeded)
+        {
+            var errors = string.Join("; ", result.Errors.Select(error => error.Description));
+            throw new InvalidOperationException($"Không thể tạo role '{role}': {errors}");
+        }
+    }
+}
 
 if (app.Environment.IsDevelopment())
 {
