@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import {
   Alert,
   Box,
@@ -7,15 +8,26 @@ import {
   Container,
   Paper,
   Skeleton,
+  Snackbar,
   Stack,
   SvgIcon,
   Typography,
 } from "@mui/material";
 import { alpha, useTheme } from "@mui/material/styles";
 import { Link as RouterLink, useParams } from "react-router-dom";
+import { removeSavedProject, saveProject } from "../../api/savedProjectsApi";
 import { getProjectById, type ProjectType } from "../../api/projectsApi";
+import ContactStudentDialog from "../company/ContactStudentDialog";
 
-type IconName = "project" | "person" | "school" | "github" | "external";
+type IconName =
+  | "project"
+  | "person"
+  | "school"
+  | "github"
+  | "external"
+  | "bookmark"
+  | "bookmarkFilled"
+  | "mail";
 
 function DetailIcon({ name }: { name: IconName }) {
   const paths: Record<IconName, string> = {
@@ -29,6 +41,12 @@ function DetailIcon({ name }: { name: IconName }) {
       "M4 5h16v14H4z M7 9l3 3-3 3m5 0h5",
     external:
       "M14 3h7v7h-2V6.41l-9.29 9.3-1.42-1.42 9.3-9.29H14V3ZM5 5h6v2H7v10h10v-4h2v6H5V5Z",
+    bookmark:
+      "M17 3H7a2 2 0 0 0-2 2v17l7-3 7 3V5a2 2 0 0 0-2-2Zm0 16-5-2.18L7 19V5h10v14Z",
+    bookmarkFilled:
+      "M17 3H7a2 2 0 0 0-2 2v17l7-3 7 3V5a2 2 0 0 0-2-2Z",
+    mail:
+      "M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm0 4-8 5-8-5V6l8 5 8-5v2Z",
   };
 
   return (
@@ -100,7 +118,14 @@ function ProjectNotFound() {
 export default function ProjectDetailPage() {
   const { id } = useParams();
   const theme = useTheme();
+  const [savedProjectId, setSavedProjectId] = useState<number | null>(null);
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [notice, setNotice] = useState<{
+    message: string;
+    severity: "success" | "error";
+  } | null>(null);
   const projectId = Number(id);
+  const isSaved = savedProjectId === projectId;
   const hasValidId =
     id !== undefined &&
     /^\d+$/.test(id) &&
@@ -110,6 +135,17 @@ export default function ProjectDetailPage() {
     queryKey: ["project-detail", projectId],
     queryFn: () => getProjectById(projectId),
     enabled: hasValidId,
+  });
+  const saveMutation = useMutation({
+    mutationFn: (shouldSave: boolean) =>
+      shouldSave ? saveProject(projectId) : removeSavedProject(projectId),
+    onSuccess: (_result, shouldSave) =>
+      setSavedProjectId(shouldSave ? projectId : null),
+    onError: () =>
+      setNotice({
+        message: "Không thể cập nhật trạng thái lưu dự án. Vui lòng thử lại.",
+        severity: "error",
+      }),
   });
 
   if (!hasValidId) {
@@ -307,46 +343,106 @@ export default function ProjectDetailPage() {
             )}
           </Box>
 
-          {(project.githubUrl || project.demoUrl) && (
-            <Box
-              className="project-detail-section"
+          <Box
+            className="project-detail-section"
+            sx={{
+              ...sectionSx(6),
+              display: "flex",
+              gap: 1.5,
+              flexWrap: "wrap",
+            }}
+          >
+            {project.githubUrl && (
+              <Button
+                component="a"
+                href={project.githubUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                variant="contained"
+                color="primary"
+                startIcon={<DetailIcon name="github" />}
+              >
+                Xem mã nguồn GitHub
+              </Button>
+            )}
+            {project.demoUrl && (
+              <Button
+                component="a"
+                href={project.demoUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                variant="outlined"
+                color="primary"
+                startIcon={<DetailIcon name="external" />}
+              >
+                Xem demo
+              </Button>
+            )}
+            <Button
+              variant="outlined"
+              color="primary"
+              aria-pressed={isSaved}
+              disabled={saveMutation.isPending}
+              onClick={() => saveMutation.mutate(!isSaved)}
+              startIcon={
+                <DetailIcon
+                  name={isSaved ? "bookmarkFilled" : "bookmark"}
+                />
+              }
               sx={{
-                ...sectionSx(6),
-                display: "flex",
-                gap: 1.5,
-                flexWrap: "wrap",
+                transition: "transform 150ms ease",
+                "&:active": { transform: "scale(0.98)" },
+                "@media (prefers-reduced-motion: reduce)": {
+                  transition: "none",
+                  "&:active": { transform: "none" },
+                },
               }}
             >
-              {project.githubUrl && (
-                <Button
-                  component="a"
-                  href={project.githubUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  variant="contained"
-                  color="primary"
-                  startIcon={<DetailIcon name="github" />}
-                >
-                  Xem mã nguồn GitHub
-                </Button>
-              )}
-              {project.demoUrl && (
-                <Button
-                  component="a"
-                  href={project.demoUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  variant="outlined"
-                  color="primary"
-                  startIcon={<DetailIcon name="external" />}
-                >
-                  Xem demo
-                </Button>
-              )}
-            </Box>
-          )}
+              {isSaved ? "Đã lưu" : "Lưu dự án"}
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<DetailIcon name="mail" />}
+              onClick={() => setContactDialogOpen(true)}
+              sx={{
+                transition: "transform 150ms ease",
+                "&:active": { transform: "scale(0.98)" },
+                "@media (prefers-reduced-motion: reduce)": {
+                  transition: "none",
+                  "&:active": { transform: "none" },
+                },
+              }}
+            >
+              Liên hệ sinh viên
+            </Button>
+          </Box>
         </Stack>
       </Paper>
+      <ContactStudentDialog
+        open={contactDialogOpen}
+        projectId={project.id}
+        onClose={() => setContactDialogOpen(false)}
+        onSent={() =>
+          setNotice({ message: "Đã gửi lời nhắn", severity: "success" })
+        }
+      />
+      {notice && (
+        <Snackbar
+          open
+          autoHideDuration={5000}
+          onClose={() => setNotice(null)}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        >
+          <Alert
+            severity={notice.severity}
+            variant="filled"
+            onClose={() => setNotice(null)}
+          >
+            {notice.message}
+          </Alert>
+        </Snackbar>
+      )}
     </Container>
   );
 }

@@ -1,3 +1,5 @@
+import { isAxiosError } from "axios";
+
 export type InboxMessageDto = {
   id: number;
   fromCompany: {
@@ -67,4 +69,78 @@ export async function markInboxMessageAsRead(
   // Khi backend sẵn sàng, thay dữ liệu giả bằng:
   // const response = await api.put<InboxMessageDto>(`/api/contacts/${id}/read`);
   // return response.data;
+}
+
+export type CreateContactRequest = {
+  projectId: number;
+  subject: string;
+  content: string;
+};
+
+export type CreateContactResponse = {
+  id: number;
+  projectId: number;
+  subject: string;
+  content: string;
+  createdAt: string;
+};
+
+export type ContactFieldErrors = Partial<
+  Record<"subject" | "content", string[]>
+>;
+
+export class ContactValidationError extends Error {
+  readonly errors: ContactFieldErrors;
+
+  constructor(errors: ContactFieldErrors) {
+    super("Dữ liệu không hợp lệ");
+    this.name = "ContactValidationError";
+    this.errors = errors;
+  }
+}
+
+let nextMockContactId = 3;
+
+export async function sendContactMessage(
+  data: CreateContactRequest,
+): Promise<CreateContactResponse> {
+  const errors: ContactFieldErrors = {};
+  if (!data.subject.trim()) {
+    errors.subject = ["Vui lòng nhập tiêu đề."];
+  } else if (data.subject.length > 200) {
+    errors.subject = ["Tiêu đề không được vượt quá 200 ký tự."];
+  }
+  if (!data.content.trim()) {
+    errors.content = ["Vui lòng nhập nội dung."];
+  } else if (data.content.length > 2000) {
+    errors.content = ["Nội dung không được vượt quá 2000 ký tự."];
+  }
+  if (Object.keys(errors).length > 0) {
+    throw new ContactValidationError(errors);
+  }
+
+  await new Promise((resolve) => setTimeout(resolve, 350));
+  return {
+    id: nextMockContactId++,
+    projectId: data.projectId,
+    subject: data.subject,
+    content: data.content,
+    createdAt: new Date().toISOString(),
+  };
+
+  // Khi backend sẵn sàng, thay dữ liệu giả bằng:
+  // const response = await api.post<CreateContactResponse>("/api/contacts", data);
+  // return response.data;
+}
+
+export function getContactFieldErrors(
+  error: unknown,
+): ContactFieldErrors | null {
+  if (error instanceof ContactValidationError) {
+    return error.errors;
+  }
+  if (!isAxiosError<{ errors?: ContactFieldErrors }>(error)) {
+    return null;
+  }
+  return error.response?.data?.errors ?? null;
 }
