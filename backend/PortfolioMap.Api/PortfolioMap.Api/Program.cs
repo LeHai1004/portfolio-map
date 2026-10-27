@@ -25,10 +25,16 @@ var jwtAudience = builder.Configuration["JwtSettings:Audience"]
     ?? throw new InvalidOperationException("Chưa cấu hình JwtSettings:Audience");
 var jwtKey = builder.Configuration["JwtSettings:Key"]
     ?? throw new InvalidOperationException("Chưa cấu hình JwtSettings:Key. Hãy đặt biến môi trường JwtSettings__Key.");
+if (string.IsNullOrWhiteSpace(jwtKey) ||
+    string.Equals(jwtKey.Trim(), "SET_JWT_SECRET", StringComparison.OrdinalIgnoreCase))
+{
+    throw new InvalidOperationException("JwtSettings:Key vẫn là giá trị mẫu. Hãy cấu hình secret riêng bằng User Secrets hoặc biến môi trường JwtSettings__Key.");
+}
+
 var jwtKeyBytes = Encoding.UTF8.GetBytes(jwtKey);
 if (jwtKeyBytes.Length < 32)
 {
-    throw new InvalidOperationException("JwtSettings:Key phải có ít nhất 32 byte.");
+    throw new InvalidOperationException("JwtSettings:Key phải là secret riêng có ít nhất 32 byte.");
 }
 
 builder.Services
