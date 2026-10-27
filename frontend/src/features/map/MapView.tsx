@@ -16,7 +16,11 @@ import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import { useQuery } from "@tanstack/react-query";
 import { Alert, Box, Fab, SvgIcon } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { getMapPins, type MapPin } from "../../api/mapApi";
+import {
+  getMapPins,
+  type MapBounds,
+  type MapPin,
+} from "../../api/mapApi";
 import { getUniversities } from "../../api/universitiesApi";
 import ProjectQuickViewPanel from "./ProjectQuickViewPanel";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
@@ -36,9 +40,12 @@ const pinIcon = new Icon({
 
 function MapInteractionTracker({
   onInteractionChange,
+  onBoundsChange,
 }: {
   onInteractionChange: (interacting: boolean) => void;
+  onBoundsChange: (bounds: MapBounds) => void;
 }) {
+  const map = useMap();
   const activeInteractions = useRef(new Set<string>());
 
   useMapEvents({
@@ -57,19 +64,36 @@ function MapInteractionTracker({
     zoomend: () => {
       activeInteractions.current.delete("zoom");
       onInteractionChange(activeInteractions.current.size > 0);
+      onBoundsChange(readMapBounds(map));
     },
+    moveend: () => onBoundsChange(readMapBounds(map)),
   });
 
   return null;
 }
 
+function readMapBounds(map: LeafletMap): MapBounds {
+  const bounds = map.getBounds();
+  return {
+    minLat: bounds.getSouth(),
+    maxLat: bounds.getNorth(),
+    minLng: bounds.getWest(),
+    maxLng: bounds.getEast(),
+  };
+}
+
 function MapInstanceBinder({
   onMapReady,
+  onBoundsChange,
 }: {
   onMapReady: (map: LeafletMap) => void;
+  onBoundsChange: (bounds: MapBounds) => void;
 }) {
   const map = useMap();
-  useEffect(() => onMapReady(map), [map, onMapReady]);
+  useEffect(() => {
+    onMapReady(map);
+    onBoundsChange(readMapBounds(map));
+  }, [map, onBoundsChange, onMapReady]);
   return null;
 }
 
@@ -85,6 +109,8 @@ export default function MapView() {
   const theme = useTheme();
   const mapRef = useRef<LeafletMap | null>(null);
   const isMapInteractingRef = useRef(false);
+  const [viewBounds, setViewBounds] = useState<MapBounds | null>(null);
+  const [debouncedBounds, setDebouncedBounds] = useState<MapBounds | null>(null);
   const [selectedPin, setSelectedPin] = useState<MapPin | null>(null);
   const [isMapInteracting, setIsMapInteracting] = useState(false);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(
@@ -92,9 +118,27 @@ export default function MapView() {
   );
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
+  useEffect(() => {
+    if (!viewBounds) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedBounds(viewBounds);
+    }, 400);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [viewBounds]);
   const { data: pins = [] } = useQuery({
-    queryKey: ["map-pins"],
-    queryFn: getMapPins,
+    queryKey: ["map-pins", debouncedBounds],
+    queryFn: () => {
+      if (!debouncedBounds) {
+        throw new Error("Không thể tải ghim khi chưa xác định khung bản đồ.");
+      }
+      return getMapPins(debouncedBounds);
+    },
+    enabled: debouncedBounds !== null,
+    placeholderData: (previousPins) => previousPins,
   });
   const universitiesQuery = useQuery({
     queryKey: ["universities"],
@@ -102,6 +146,9 @@ export default function MapView() {
   });
   const handleMapReady = useCallback((map: LeafletMap) => {
     mapRef.current = map;
+  }, []);
+  const handleBoundsChange = useCallback((bounds: MapBounds) => {
+    setViewBounds(bounds);
   }, []);
   const handleMapInteractionChange = useCallback((interacting: boolean) => {
     isMapInteractingRef.current = interacting;
@@ -147,9 +194,13 @@ export default function MapView() {
         zoom={12}
         style={{ height: "100%", width: "100%" }}
       >
-        <MapInstanceBinder onMapReady={handleMapReady} />
+        <MapInstanceBinder
+          onMapReady={handleMapReady}
+          onBoundsChange={handleBoundsChange}
+        />
         <MapInteractionTracker
           onInteractionChange={handleMapInteractionChange}
+          onBoundsChange={handleBoundsChange}
         />
         <TileLayer
           attribution="&copy; OpenStreetMap"

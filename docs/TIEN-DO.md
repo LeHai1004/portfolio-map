@@ -12,10 +12,11 @@ Cập nhật ngày 27/10/2026.
 - Trang chi tiết dự án (S1-11).
 - Panel xem nhanh khi bấm ghim (S1-13, nhánh `feature/map-pins`; đã triển khai, chưa commit).
 - Nút định vị và ghim trường đại học (S1-16, nhánh `feature/map-extras`; đã triển khai, chưa commit).
+- Chỉ tải ghim trong khung bản đồ đang nhìn (S1-15, nhánh `feature/map-bbox`; đã triển khai, chưa commit).
 
 ## Đang làm
 
-- Hoàn tất kiểm tra S1-16; chưa commit theo yêu cầu.
+- Hoàn tất kiểm tra S1-15; chưa commit theo yêu cầu.
 
 ## Tiếp theo
 
