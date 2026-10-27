@@ -14,10 +14,11 @@ Cập nhật ngày 27/10/2026.
 - Nút định vị và ghim trường đại học (S1-16, nhánh `feature/map-extras`; đã triển khai, chưa commit).
 - Chỉ tải ghim trong khung bản đồ đang nhìn (S1-15, nhánh `feature/map-bbox`; đã triển khai, chưa commit).
 - Thanh tìm kiếm và bộ lọc (S1-17, nhánh `feature/search-ui`; đã triển khai, chưa nối API và chưa commit).
+- Chuẩn hóa dạng lỗi validation 400 toàn API (đã cấu hình tập trung trong `Program.cs`).
 
 ## Đang làm
 
-- Hoàn tất kiểm tra S1-17; chưa commit theo yêu cầu.
+- Hoàn tất kiểm tra nhánh backend; chưa commit theo yêu cầu.
 
 ## Tiếp theo
 
