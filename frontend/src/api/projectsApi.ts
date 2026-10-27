@@ -54,7 +54,7 @@ const mockProjectDetails: Record<number, ProjectDetailDto> = {
     universityId: 1,
     universityName: "Đại học Bách Khoa - ĐH Đà Nẵng",
     githubUrl: "https://github.com/example/expense-app",
-    demoUrl: null,
+    demoUrl: "https://example.com/expense-app",
     thumbnailUrl: "/uploads/mock/1-1.jpg",
     images: [
       { id: 11, imageUrl: "/uploads/mock/1-1.jpg" },

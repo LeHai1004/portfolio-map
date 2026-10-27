@@ -5,14 +5,63 @@ import {
   Button,
   Chip,
   Container,
-  Link as MuiLink,
   Paper,
   Skeleton,
   Stack,
+  SvgIcon,
   Typography,
 } from "@mui/material";
+import { alpha, useTheme } from "@mui/material/styles";
 import { Link as RouterLink, useParams } from "react-router-dom";
-import { getProjectById } from "../../api/projectsApi";
+import { getProjectById, type ProjectType } from "../../api/projectsApi";
+
+type IconName = "project" | "person" | "school" | "github" | "external";
+
+function DetailIcon({ name }: { name: IconName }) {
+  const paths: Record<IconName, string> = {
+    project:
+      "M4 4h16v16H4z M8 8h8v2H8z M8 12h8v2H8z M8 16h5v2H8z",
+    person:
+      "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5Z",
+    school:
+      "m12 3 10 5-10 5L2 8l10-5Zm-6 8.2 6 3 6-3V16l-6 3-6-3v-4.8ZM20 10h2v7h-2z",
+    github:
+      "M4 5h16v14H4z M7 9l3 3-3 3m5 0h5",
+    external:
+      "M14 3h7v7h-2V6.41l-9.29 9.3-1.42-1.42 9.3-9.29H14V3ZM5 5h6v2H7v10h10v-4h2v6H5V5Z",
+  };
+
+  return (
+    <SvgIcon fontSize="small" aria-hidden="true">
+      <path d={paths[name]} />
+    </SvgIcon>
+  );
+}
+
+function ProjectTypeIcon({
+  type,
+  size = 44,
+}: {
+  type: ProjectType;
+  size?: number;
+}) {
+  const paths: Record<ProjectType, string> = {
+    Web: "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm7.9 9h-3.02a15.7 15.7 0 0 0-1.35-6.02A8.02 8.02 0 0 1 19.9 11ZM12 4c.95 1.37 1.66 3.95 1.87 7h-3.74c.21-3.05.92-5.63 1.87-7ZM4.1 13h3.02c.18 2.24.66 4.3 1.35 6.02A8.02 8.02 0 0 1 4.1 13Zm3.02-2H4.1a8.02 8.02 0 0 1 4.37-6.02A15.7 15.7 0 0 0 7.12 11ZM12 20c-.95-1.37-1.66-3.95-1.87-7h3.74c-.21 3.05-.92 5.63-1.87 7Zm3.53-.98A15.7 15.7 0 0 0 16.88 13h3.02a8.02 8.02 0 0 1-4.37 6.02Z",
+    Mobile:
+      "M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm0 3v13h10V5H7Zm4 14h2v1h-2z",
+    Game:
+      "M7 7h10a5 5 0 0 1 4.8 6.4l-1 3.5a2.5 2.5 0 0 1-4.1 1.1L14.8 16H9.2l-1.9 2a2.5 2.5 0 0 1-4.1-1.1l-1-3.5A5 5 0 0 1 7 7Zm1 3H6v2H4v2h2v2h2v-2h2v-2H8v-2Zm8 1a1 1 0 1 0 0 2 1 1 0 0 0 0-2Zm2 2a1 1 0 1 0 0 2 1 1 0 0 0 0-2Z",
+    AI: "M12 2 14.2 9.8 22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2L12 2Zm7 14 .9 3.1L23 20l-3.1.9L19 24l-.9-3.1L15 20l3.1-.9L19 16Z",
+    Other:
+      "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm1 13h-2v-2h2v2Zm0-4h-2V7h2v5Z",
+  };
+
+  return (
+    <SvgIcon sx={{ fontSize: size, flexShrink: 0 }} aria-hidden="true">
+      <path d={paths[type]} />
+    </SvgIcon>
+  );
+}
 
 function ProjectDetailSkeleton() {
   return (
@@ -31,8 +80,26 @@ function ProjectDetailSkeleton() {
   );
 }
 
+function ProjectNotFound() {
+  return (
+    <Container maxWidth="md" sx={{ py: { xs: 3, sm: 5 } }}>
+      <Alert
+        severity="info"
+        action={
+          <Button component={RouterLink} to="/" color="inherit" size="small">
+            Về bản đồ
+          </Button>
+        }
+      >
+        Không tìm thấy dự án.
+      </Alert>
+    </Container>
+  );
+}
+
 export default function ProjectDetailPage() {
   const { id } = useParams();
+  const theme = useTheme();
   const projectId = Number(id);
   const hasValidId =
     id !== undefined &&
@@ -76,128 +143,205 @@ export default function ProjectDetailPage() {
   }
 
   const imageUrl = project.thumbnailUrl ?? project.images[0]?.imageUrl;
+  const sectionSx = (index: number) => ({
+    animation: "project-detail-section-enter 250ms ease-out both",
+    animationDelay: `${index * 40}ms`,
+  });
 
   return (
     <Container
       maxWidth="md"
       sx={{
         py: { xs: 3, sm: 5 },
-        animation: "project-detail-enter 220ms ease-out both",
-        "@keyframes project-detail-enter": {
-          from: { opacity: 0, transform: "translateY(12px)" },
+        "@keyframes project-detail-section-enter": {
+          from: { opacity: 0, transform: "translateY(10px)" },
           to: { opacity: 1, transform: "translateY(0)" },
         },
         "@media (prefers-reduced-motion: reduce)": {
-          animation: "none",
+          "& .project-detail-section": { animation: "none" },
         },
       }}
     >
-      <Paper variant="outlined" sx={{ overflow: "hidden" }}>
+      <Paper
+        className="project-detail-card"
+        variant="outlined"
+        sx={{
+          overflow: "hidden",
+          transition: "transform 180ms ease",
+          "&:hover": { transform: "translateY(-3px)" },
+          "@media (prefers-reduced-motion: reduce)": {
+            transition: "none",
+            "&:hover": { transform: "none" },
+          },
+        }}
+      >
         <Box
+          className="project-detail-section"
           sx={{
+            ...sectionSx(0),
+            position: "relative",
             display: "grid",
             placeItems: "center",
             height: { xs: 220, sm: 360 },
-            bgcolor: "action.hover",
+            overflow: "hidden",
+            background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.14)}, ${alpha(theme.palette.secondary.main, 0.2)})`,
+            color: "primary.main",
           }}
         >
-          {imageUrl ? (
-            <>
-              <Typography color="text.secondary" sx={{ gridArea: "1 / 1" }}>
-                Ảnh dự án chưa tải được
-              </Typography>
-              <Box
-                component="img"
-                src={imageUrl}
-                alt={`Ảnh dự án ${project.title}`}
-                onError={(event) => {
-                  event.currentTarget.style.visibility = "hidden";
-                }}
-                sx={{
-                  gridArea: "1 / 1",
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                }}
-              />
-            </>
-          ) : (
-            <Typography color="text.secondary">Chưa có ảnh dự án</Typography>
+          <Box
+            sx={{
+              gridArea: "1 / 1",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 1,
+              color: "primary.main",
+            }}
+          >
+            <ProjectTypeIcon type={project.type} />
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+              {project.type}
+            </Typography>
+          </Box>
+          {imageUrl && (
+            <Box
+              component="img"
+              src={imageUrl}
+              alt={`Ảnh dự án ${project.title}`}
+              onError={(event) => {
+                event.currentTarget.style.display = "none";
+              }}
+              sx={{
+                gridArea: "1 / 1",
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+              }}
+            />
           )}
         </Box>
 
         <Stack spacing={3} sx={{ p: { xs: 2, sm: 4 } }}>
           <Box
+            className="project-detail-section"
             sx={{
+              ...sectionSx(1),
               display: "flex",
-              flexDirection: { xs: "column", sm: "row" },
-              alignItems: { xs: "flex-start", sm: "center" },
+              alignItems: "center",
               gap: 1,
+              flexWrap: "wrap",
             }}
           >
-            <Chip label={project.type} color="primary" variant="outlined" />
+            <Chip
+              icon={<ProjectTypeIcon type={project.type} size={16} />}
+              label={project.type}
+              sx={{
+                bgcolor: alpha(theme.palette.primary.main, 0.1),
+                color: "primary.main",
+                "& .MuiChip-icon": { color: "inherit", fontSize: 16 },
+              }}
+            />
             <Typography variant="body2" color="text.secondary">
               {project.viewCount.toLocaleString("vi-VN")} lượt xem
             </Typography>
           </Box>
 
           <Typography
-            variant="h4"
+            className="project-detail-section"
+            variant="h3"
             component="h1"
-            sx={{ fontWeight: 700 }}
+            sx={{ ...sectionSx(2), fontWeight: 700 }}
           >
             {project.title}
           </Typography>
 
           {project.description && (
-            <Typography color="text.secondary" sx={{ whiteSpace: "pre-line" }}>
+            <Typography
+              className="project-detail-section"
+              color="text.secondary"
+              sx={{ ...sectionSx(3), whiteSpace: "pre-line" }}
+            >
               {project.description}
             </Typography>
           )}
 
           {project.tags.length > 0 && (
-            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+            <Box
+              className="project-detail-section"
+              sx={{ ...sectionSx(4), display: "flex", gap: 1, flexWrap: "wrap" }}
+            >
               {project.tags.map((tag) => (
-                <Chip key={tag.id} label={tag.name} size="small" />
+                <Chip
+                  key={tag.id}
+                  label={tag.name}
+                  size="small"
+                  sx={{
+                    bgcolor: alpha(theme.palette.secondary.main, 0.12),
+                    color: "text.primary",
+                  }}
+                />
               ))}
             </Box>
           )}
 
-          <Stack spacing={1}>
-            <Typography variant="subtitle2" color="text.secondary">
-              Chủ dự án
-            </Typography>
-            <Typography>{project.owner.fullName}</Typography>
-          </Stack>
-
-          {project.universityName && (
-            <Stack spacing={1}>
-              <Typography variant="subtitle2" color="text.secondary">
-                Trường
-              </Typography>
-              <Typography>{project.universityName}</Typography>
-            </Stack>
-          )}
+          <Box
+            className="project-detail-section"
+            sx={{
+              ...sectionSx(5),
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" },
+              gap: 2,
+            }}
+          >
+            <MetadataBlock
+              icon="person"
+              label="Chủ dự án"
+              value={project.owner.fullName}
+            />
+            {project.universityName && (
+              <MetadataBlock
+                icon="school"
+                label="Trường"
+                value={project.universityName}
+              />
+            )}
+          </Box>
 
           {(project.githubUrl || project.demoUrl) && (
-            <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+            <Box
+              className="project-detail-section"
+              sx={{
+                ...sectionSx(6),
+                display: "flex",
+                gap: 1.5,
+                flexWrap: "wrap",
+              }}
+            >
               {project.githubUrl && (
-                <MuiLink
+                <Button
+                  component="a"
                   href={project.githubUrl}
                   target="_blank"
                   rel="noopener noreferrer"
+                  variant="contained"
+                  color="primary"
+                  startIcon={<DetailIcon name="github" />}
                 >
-                  Xem mã nguồn trên GitHub
-                </MuiLink>
+                  Xem mã nguồn GitHub
+                </Button>
               )}
               {project.demoUrl && (
-                <MuiLink
+                <Button
+                  component="a"
                   href={project.demoUrl}
                   target="_blank"
                   rel="noopener noreferrer"
+                  variant="outlined"
+                  color="primary"
+                  startIcon={<DetailIcon name="external" />}
                 >
-                  Xem bản demo
-                </MuiLink>
+                  Xem demo
+                </Button>
               )}
             </Box>
           )}
@@ -207,19 +351,47 @@ export default function ProjectDetailPage() {
   );
 }
 
-function ProjectNotFound() {
+function MetadataBlock({
+  icon,
+  label,
+  value,
+}: {
+  icon: "person" | "school";
+  label: string;
+  value: string;
+}) {
   return (
-    <Container maxWidth="md" sx={{ py: { xs: 3, sm: 5 } }}>
-      <Alert
-        severity="info"
-        action={
-          <Button component={RouterLink} to="/" color="inherit" size="small">
-            Về bản đồ
-          </Button>
-        }
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: 1.5,
+        p: 2,
+        borderRadius: 2,
+        bgcolor: "background.default",
+      }}
+    >
+      <Box
+        sx={{
+          display: "grid",
+          placeItems: "center",
+          width: 40,
+          height: 40,
+          borderRadius: 2,
+          color: "primary.main",
+          bgcolor: "background.paper",
+        }}
       >
-        Không tìm thấy dự án.
-      </Alert>
-    </Container>
+        <DetailIcon name={icon} />
+      </Box>
+      <Box sx={{ minWidth: 0 }}>
+        <Typography variant="caption" color="text.secondary">
+          {label}
+        </Typography>
+        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+          {value}
+        </Typography>
+      </Box>
+    </Box>
   );
 }
