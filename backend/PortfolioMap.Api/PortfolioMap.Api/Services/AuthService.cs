@@ -56,6 +56,17 @@ namespace PortfolioMap.Api.Services
                 };
             }
 
+            if (!await _roleManager.RoleExistsAsync(request.Role))
+            {
+                return new ServiceResult<RegisterResponse>
+                {
+                    Success = false,
+                    StatusCode = 409,
+                    Message = "Vai trò chưa được khởi tạo",
+                    Errors = new { role = new[] { "Vai trò chưa được khởi tạo" } }
+                };
+            }
+
             // 3. Tạo tài khoản mới trong Database
             var user = new AppUser
             {
@@ -77,33 +88,25 @@ namespace PortfolioMap.Api.Services
                 };
             }
 
-            // 4. Đảm bảo role tồn tại trước khi gán
-            if (!await _roleManager.RoleExistsAsync(request.Role))
-            {
-                var createRoleResult = await _roleManager.CreateAsync(new IdentityRole(request.Role));
-                if (!createRoleResult.Succeeded)
-                {
-                    await _userManager.DeleteAsync(user);
-                    return new ServiceResult<RegisterResponse>
-                    {
-                        Success = false,
-                        StatusCode = 409,
-                        Message = "Không thể tạo role cho tài khoản",
-                        Errors = MapIdentityErrors(createRoleResult.Errors, "role")
-                    };
-                }
-            }
-
+            // 4. Gán role đã được khởi tạo khi ứng dụng khởi động
             var addToRoleResult = await _userManager.AddToRoleAsync(user, request.Role);
             if (!addToRoleResult.Succeeded)
             {
-                await _userManager.DeleteAsync(user);
+                var errors = addToRoleResult.Errors
+                    .Select(error => error.Description)
+                    .ToList();
+                var cleanupResult = await _userManager.DeleteAsync(user);
+                if (!cleanupResult.Succeeded)
+                {
+                    errors.AddRange(cleanupResult.Errors.Select(error => error.Description));
+                }
+
                 return new ServiceResult<RegisterResponse>
                 {
                     Success = false,
                     StatusCode = 409,
                     Message = "Không thể gán role cho tài khoản",
-                    Errors = MapIdentityErrors(addToRoleResult.Errors, "role")
+                    Errors = new Dictionary<string, string[]> { ["role"] = errors.ToArray() }
                 };
             }
 
@@ -150,7 +153,7 @@ namespace PortfolioMap.Api.Services
             }
 
             var roles = await _userManager.GetRolesAsync(user);
-            if (roles.Count == 0)
+            if (roles.Count != 1 || !IsSupportedRole(roles[0]))
             {
                 return new ServiceResult<LoginResponse>
                 {
@@ -204,7 +207,7 @@ namespace PortfolioMap.Api.Services
             }
 
             var roles = await _userManager.GetRolesAsync(user);
-            if (roles.Count == 0)
+            if (roles.Count != 1 || !IsSupportedRole(roles[0]))
             {
                 return new ServiceResult<UserDto>
                 {
@@ -239,6 +242,11 @@ namespace PortfolioMap.Api.Services
             return errors
                 .GroupBy(error => error.Code.StartsWith("Password", StringComparison.Ordinal) ? "password" : defaultField)
                 .ToDictionary(group => group.Key, group => group.Select(error => error.Description).ToArray());
+        }
+
+        private static bool IsSupportedRole(string role)
+        {
+            return role is "Student" or "Company" or "Admin";
         }
 
         private string GenerateJwtToken(AppUser user, string role, DateTime expiresAt)
