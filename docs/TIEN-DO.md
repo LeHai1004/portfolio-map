@@ -11,10 +11,11 @@ Cập nhật ngày 27/10/2026.
 - Luật frontend cho Agent (PR #23).
 - Trang chi tiết dự án (S1-11).
 - Panel xem nhanh khi bấm ghim (S1-13, nhánh `feature/map-pins`; đã triển khai, chưa commit).
+- Nút định vị và ghim trường đại học (S1-16, nhánh `feature/map-extras`; đã triển khai, chưa commit).
 
 ## Đang làm
 
-- Hoàn tất kiểm tra và chuẩn bị PR cho S1-13.
+- Hoàn tất kiểm tra S1-16; chưa commit theo yêu cầu.
 
 ## Tiếp theo
 
