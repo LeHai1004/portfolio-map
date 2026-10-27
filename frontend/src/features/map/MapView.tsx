@@ -22,7 +22,11 @@ import {
   type MapPin,
 } from "../../api/mapApi";
 import { getUniversities } from "../../api/universitiesApi";
+import { getTags } from "../../api/tagsApi";
 import ProjectQuickViewPanel from "./ProjectQuickViewPanel";
+import ProjectSearchBar, {
+  type ProjectSearchFilters,
+} from "../search/ProjectSearchBar";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
@@ -118,6 +122,12 @@ export default function MapView() {
   );
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
+  const [, setSearchFilters] = useState<ProjectSearchFilters>({
+    keyword: "",
+    types: [],
+    tagIds: [],
+    universityId: null,
+  });
   useEffect(() => {
     if (!viewBounds) {
       return;
@@ -143,6 +153,10 @@ export default function MapView() {
   const universitiesQuery = useQuery({
     queryKey: ["universities"],
     queryFn: getUniversities,
+  });
+  const tagsQuery = useQuery({
+    queryKey: ["tags"],
+    queryFn: getTags,
   });
   const handleMapReady = useCallback((map: LeafletMap) => {
     mapRef.current = map;
@@ -189,6 +203,12 @@ export default function MapView() {
 
   return (
     <Box sx={{ position: "relative", width: "100%", height: "100%" }}>
+      <ProjectSearchBar
+        tags={tagsQuery.data ?? []}
+        universities={universitiesQuery.data ?? []}
+        onChange={setSearchFilters}
+        disableAnimation={isMapInteracting}
+      />
       <MapContainer
         center={[16.0544, 108.2022]}
         zoom={12}
