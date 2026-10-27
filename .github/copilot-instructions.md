@@ -23,7 +23,7 @@ Mạng xã hội bản đồ portfolio: sinh viên thả ghim dự án lên bả
 
 ## Git
 
-- Không push thẳng main/develop. Nhánh: loại/chức-năng-việc-làm. PR vào develop, dưới 300 dòng.
+- Không push thẳng main/develop. Nhánh: loại/chức-năng-việc-làm. PR vào develop, khoảng 500 dòng; PR tài liệu, giao diện và file sinh tự động (migration) không tính chặt; PR logic backend nên nhỏ để dễ review.
 - Commit: loại(chức-năng): mô tả. Không commit appsettings.Development.json, .env.
 
 ## Khi tôi nói "review PR" (chỉ lúc đó mới áp dụng mục này)
