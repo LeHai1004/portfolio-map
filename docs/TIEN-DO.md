@@ -1,6 +1,6 @@
 # Tiến độ phần giao diện của Hải
 
-Cập nhật ngày 26/10/2026.
+Cập nhật ngày 27/10/2026.
 
 ## Đã xong
 
@@ -9,11 +9,12 @@ Cập nhật ngày 26/10/2026.
 - Form thả ghim (PR #13).
 - `copilot-instructions` (PR #19).
 - Luật frontend cho Agent (PR #23).
+- Trang chi tiết dự án (S1-11).
+- Panel xem nhanh khi bấm ghim (S1-13, nhánh `feature/map-pins`; đã triển khai, chưa commit).
 
 ## Đang làm
 
-- Trang chi tiết dự án.
-- Nhánh `feature/projects-detail`, chưa commit.
+- Hoàn tất kiểm tra và chuẩn bị PR cho S1-13.
 
 ## Tiếp theo
 
