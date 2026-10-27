@@ -65,9 +65,24 @@ Công thức: `loại(chức-năng): mô tả ngắn`
 - Tiêu đề giống tiêu đề thẻ Trello. Ví dụ: `[F1][BE] Hợp đồng API register`
 - Đích của PR là `develop`, không phải `main`.
 - Khoảng 500 dòng; PR tài liệu, giao diện và file sinh tự động (migration) không tính chặt; PR logic backend nên nhỏ để dễ review.
+- PR vào `develop` dùng **Squash merge**; PR vào `main` dùng **Merge**.
 - Điền đủ mẫu mô tả (tự hiện ra nhờ file `.github/pull_request_template.md`).
 - Người duyệt phải khác người viết. Duyệt trong vòng 1 ngày.
 - Người duyệt hỏi một câu về code mà người viết không trả lời được thì chưa merge.
+
+### Thẻ phụ thuộc nhau
+
+- Nếu thẻ cần code của thẻ khác, chờ thẻ phụ thuộc được merge rồi mới tạo nhánh từ `develop` mới nhất.
+- Không tách nhánh từ nhánh của người khác.
+- Merge PR theo đúng thứ tự phụ thuộc.
+
+### Cách review PR
+
+1. Checkout nhánh của PR và đọc đúng các file thuộc PR.
+2. Đối chiếu thay đổi với hợp đồng API và quy ước của nhóm.
+3. Chia góp ý thành:
+   - **Bắt buộc sửa**: sai hợp đồng, sai quy ước hoặc gây lỗi thật.
+   - **Không bắt buộc**: góp ý cải thiện nhưng không gây lỗi và không vi phạm quy ước.
 
 ## 4. Đặt tên file, class, thư mục
 
@@ -101,11 +116,12 @@ Công thức: `loại(chức-năng): mô tả ngắn`
 - Lỗi luôn trả cùng một dạng, ví dụ:
 
 ```
-{ "message": "Dữ liệu không hợp lệ", "errors": { "email": "Email đã tồn tại" } }
+{ "message": "Dữ liệu không hợp lệ", "errors": { "email": ["Email đã tồn tại"] } }
 ```
 
+- Id người dùng luôn có kiểu `string`.
 - Danh sách dài thì phân trang: gửi `page`, `pageSize`; nhận `items`, `page`, `pageSize`, `totalItems`.
-- Mỗi chức năng đi qua 2 PR. PR 1 là Hợp đồng (DTO và controller trả dữ liệu mẫu). PR 2 là Hiện thực (logic thật, lưu DB).
+- Mỗi chức năng đi qua 2 PR. PR 1 là Hợp đồng (DTO và controller trả dữ liệu mẫu trong thư mục `Mock`). PR 2 là Hiện thực (logic thật, lưu DB); khi nối DB phải xóa dữ liệu mẫu trong `Mock`.
 - Hợp đồng đã merge thì không ai tự ý đổi tên trường hay đường dẫn. Muốn đổi thì tạo thẻ có nhãn Đổi hợp đồng và báo nhóm.
 
 ## 6. Dùng AI
