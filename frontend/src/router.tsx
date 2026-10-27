@@ -5,17 +5,42 @@ import ProjectFormPage from "./features/projects/ProjectFormPage";
 import ProjectDetailPage from "./features/projects/ProjectDetailPage";
 import CompanyProfilePage from "./features/company/CompanyProfilePage";
 import InboxPage from "./features/company/InboxPage";
+import AuthProvider from "./features/auth/AuthContext";
+import LoginPage from "./features/auth/LoginPage";
+import ProtectedRoute from "./features/auth/ProtectedRoute";
+import RegisterPage from "./features/auth/RegisterPage";
 
 export const router = createBrowserRouter([
   {
-    path: "/",
-    element: <Layout />,
+    element: <AuthProvider />,
     children: [
-      { index: true, element: <HomePage /> },
-      { path: "projects/new", element: <ProjectFormPage /> },
-      { path: "projects/:id", element: <ProjectDetailPage /> },
-      { path: "companies/:id", element: <CompanyProfilePage /> },
-      { path: "inbox", element: <InboxPage /> },
+      {
+        path: "/",
+        element: <Layout />,
+        children: [
+          { index: true, element: <HomePage /> },
+          {
+            path: "projects/new",
+            element: (
+              <ProtectedRoute allowedRoles={["Student"]}>
+                <ProjectFormPage />
+              </ProtectedRoute>
+            ),
+          },
+          { path: "projects/:id", element: <ProjectDetailPage /> },
+          { path: "companies/:id", element: <CompanyProfilePage /> },
+          {
+            path: "inbox",
+            element: (
+              <ProtectedRoute allowedRoles={["Student"]}>
+                <InboxPage />
+              </ProtectedRoute>
+            ),
+          },
+          { path: "login", element: <LoginPage /> },
+          { path: "register", element: <RegisterPage /> },
+        ],
+      },
     ],
   },
 ]);
