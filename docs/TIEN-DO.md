@@ -16,10 +16,11 @@ Cập nhật ngày 27/10/2026.
 - Thanh tìm kiếm và bộ lọc (S1-17, nhánh `feature/search-ui`; đã triển khai, chưa nối API và chưa commit).
 - Chuẩn hóa dạng lỗi validation 400 toàn API (đã cấu hình tập trung trong `Program.cs`).
 - Hồ sơ công ty và hộp thư dữ liệu giả (S1-18, nhánh `feature/company-ui`; đã triển khai, chưa commit).
+- Nút lưu dự án và liên hệ trên trang chi tiết (S2-07, nhánh `feature/company-save-contact`; giao diện và dữ liệu giả, chưa commit).
 
 ## Đang làm
 
-- Hoàn tất kiểm tra S1-18; chưa commit theo yêu cầu.
+- Hoàn tất kiểm tra S2-07; chưa commit theo yêu cầu.
 
 ## Tiếp theo
 
