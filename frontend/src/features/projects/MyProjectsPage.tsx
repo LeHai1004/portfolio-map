@@ -15,10 +15,15 @@ import {
   DialogContentText,
   DialogTitle,
   Skeleton,
+  Snackbar,
   Stack,
   Typography,
 } from "@mui/material";
-import { Link as RouterLink } from "react-router-dom";
+import {
+  Link as RouterLink,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 import {
   deleteProject,
   getMyProjects,
@@ -52,8 +57,11 @@ function MyProjectsSkeleton() {
 
 export default function MyProjectsPage() {
   const queryClient = useQueryClient();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [projectToDelete, setProjectToDelete] =
     useState<ProjectDetailDto | null>(null);
+  const navigationState = location.state as { projectUpdated?: boolean } | null;
   const query = useQuery({
     queryKey: ["projects", "mine"],
     queryFn: getMyProjects,
@@ -190,7 +198,11 @@ export default function MyProjectsPage() {
                   >
                     Xem
                   </Button>
-                  <Button size="small" disabled title="Chưa có chế độ sửa">
+                  <Button
+                    component={RouterLink}
+                    to={`/projects/${project.id}/edit`}
+                    size="small"
+                  >
                     Sửa
                   </Button>
                   <Button
@@ -248,6 +260,16 @@ export default function MyProjectsPage() {
           </Button>
         </DialogActions>
       </Dialog>
+      <Snackbar
+        open={navigationState?.projectUpdated === true}
+        autoHideDuration={5000}
+        onClose={() => {
+          if (navigationState?.projectUpdated) {
+            navigate(location.pathname, { replace: true, state: null });
+          }
+        }}
+        message="Đã cập nhật dự án"
+      />
     </Container>
   );
 }

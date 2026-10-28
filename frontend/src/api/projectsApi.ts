@@ -16,6 +16,11 @@ export type CreateProjectRequest = {
   tags: string[];
 };
 
+export type UpdateProjectRequest = Pick<
+  CreateProjectRequest,
+  "title" | "description" | "type" | "latitude" | "longitude" | "githubUrl"
+>;
+
 export type CreateProjectResponse = {
   id: number;
   title: string;
@@ -91,6 +96,30 @@ export async function getMyProjects(): Promise<ProjectDetailDto[]> {
 
   // Khi backend sẵn sàng, thay dữ liệu giả bằng:
   // const response = await api.get<ProjectDetailDto[]>("/api/projects/mine");
+  // return response.data;
+}
+
+export async function updateProject(
+  id: number,
+  data: UpdateProjectRequest,
+): Promise<ProjectDetailDto> {
+  await new Promise((resolve) => setTimeout(resolve, 400));
+  const project = mockProjectDetails[id];
+  if (!project) {
+    throw new Error("Không tìm thấy dự án cần cập nhật.");
+  }
+
+  const updatedProject: ProjectDetailDto = {
+    ...project,
+    ...data,
+    description: data.description ?? null,
+    githubUrl: data.githubUrl ?? null,
+  };
+  mockProjectDetails[id] = updatedProject;
+  return updatedProject;
+
+  // Khi backend sẵn sàng, thay dữ liệu giả bằng:
+  // const response = await api.put<ProjectDetailDto>(`/api/projects/${id}`, data);
   // return response.data;
 }
 
