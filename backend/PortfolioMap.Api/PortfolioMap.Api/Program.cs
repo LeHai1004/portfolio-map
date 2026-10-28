@@ -42,6 +42,11 @@ builder.Services
     {
         options.User.RequireUniqueEmail = true;
         options.Password.RequiredLength = 8;
+<<<<<<< HEAD
+        options.Password.RequireDigit = false;
+        options.Password.RequireLowercase = false;
+=======
+>>>>>>> 27337fb0690adf7392dd3b8429b8439770abe0e6
         options.Password.RequireUppercase = false;
         options.Password.RequireNonAlphanumeric = false;
     })
