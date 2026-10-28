@@ -85,6 +85,26 @@ export async function getProjectById(
   // return response.data;
 }
 
+export async function getMyProjects(): Promise<ProjectDetailDto[]> {
+  await new Promise((resolve) => setTimeout(resolve, 350));
+  return Object.values(mockProjectDetails);
+
+  // Khi backend sẵn sàng, thay dữ liệu giả bằng:
+  // const response = await api.get<ProjectDetailDto[]>("/api/projects/mine");
+  // return response.data;
+}
+
+export async function deleteProject(id: number): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 250));
+  if (!mockProjectDetails[id]) {
+    throw new Error("Không tìm thấy dự án cần xóa.");
+  }
+  delete mockProjectDetails[id];
+
+  // Khi backend sẵn sàng, thay dữ liệu giả bằng:
+  // await api.delete(`/api/projects/${id}`);
+}
+
 export async function createProject(
   data: CreateProjectRequest,
 ): Promise<CreateProjectResponse> {
