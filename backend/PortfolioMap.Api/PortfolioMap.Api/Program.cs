@@ -25,17 +25,27 @@ var jwtAudience = builder.Configuration["JwtSettings:Audience"]
     ?? throw new InvalidOperationException("Chưa cấu hình JwtSettings:Audience");
 var jwtKey = builder.Configuration["JwtSettings:Key"]
     ?? throw new InvalidOperationException("Chưa cấu hình JwtSettings:Key. Hãy đặt biến môi trường JwtSettings__Key.");
+if (string.IsNullOrWhiteSpace(jwtKey) ||
+    string.Equals(jwtKey.Trim(), "SET_JWT_SECRET", StringComparison.OrdinalIgnoreCase))
+{
+    throw new InvalidOperationException("JwtSettings:Key vẫn là giá trị mẫu. Hãy cấu hình secret riêng bằng User Secrets hoặc biến môi trường JwtSettings__Key.");
+}
+
 var jwtKeyBytes = Encoding.UTF8.GetBytes(jwtKey);
 if (jwtKeyBytes.Length < 32)
 {
-    throw new InvalidOperationException("JwtSettings:Key phải có ít nhất 32 byte.");
+    throw new InvalidOperationException("JwtSettings:Key phải là secret riêng có ít nhất 32 byte.");
 }
 
 builder.Services
-    .AddIdentity<AppUser, IdentityRole>(options =>
+    .AddIdentityCore<AppUser>(options =>
     {
         options.User.RequireUniqueEmail = true;
+        options.Password.RequiredLength = 8;
+        options.Password.RequireUppercase = false;
+        options.Password.RequireNonAlphanumeric = false;
     })
+    .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
 
@@ -88,6 +98,7 @@ builder.Services
     });
 
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddAuthorization();
 
 // 2. CORS: cho phép giao diện React (cổng 5173) gọi API
 const string CorsPolicy = "FrontendDev";
@@ -124,6 +135,25 @@ builder.Services.AddControllers()
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    foreach (var role in new[] { "Student", "Company", "Admin" })
+    {
+        if (await roleManager.RoleExistsAsync(role))
+        {
+            continue;
+        }
+
+        var result = await roleManager.CreateAsync(new IdentityRole(role));
+        if (!result.Succeeded)
+        {
+            var errors = string.Join("; ", result.Errors.Select(error => error.Description));
+            throw new InvalidOperationException($"Không thể tạo role '{role}': {errors}");
+        }
+    }
+}
 
 if (app.Environment.IsDevelopment())
 {

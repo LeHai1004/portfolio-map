@@ -1,7 +1,18 @@
+import { useState } from "react";
 import { AppBar, Box, Button, Toolbar, Typography } from "@mui/material";
-import { Link, Outlet } from "react-router-dom";
+import { Link, Outlet, useNavigate } from "react-router-dom";
+import { clearToken, getToken } from "../api/token";
 
 export default function Layout() {
+  const navigate = useNavigate();
+  const [isLoggedIn, setIsLoggedIn] = useState(() => Boolean(getToken()));
+
+  const handleLogout = () => {
+    clearToken();
+    setIsLoggedIn(false);
+    navigate("/");
+  };
+
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <AppBar position="static">
@@ -14,9 +25,15 @@ export default function Layout() {
           >
             Portfolio Map
           </Typography>
-          <Button color="inherit" component={Link} to="/login">
-            Đăng nhập
-          </Button>
+          {isLoggedIn ? (
+            <Button color="inherit" onClick={handleLogout}>
+              Đăng xuất
+            </Button>
+          ) : (
+            <Button color="inherit" component={Link} to="/login">
+              Đăng nhập
+            </Button>
+          )}
         </Toolbar>
       </AppBar>
       <Box component="main" sx={{ flexGrow: 1, minHeight: 0 }}>
