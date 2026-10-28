@@ -6,8 +6,12 @@ import ProjectDetailPage from "./features/projects/ProjectDetailPage";
 import MyProjectsPage from "./features/projects/MyProjectsPage";
 import CompanyProfilePage from "./features/company/CompanyProfilePage";
 import InboxPage from "./features/company/InboxPage";
+import LoginPage from "./features/auth/LoginPage";
+import RegisterPage from "./features/auth/RegisterPage";
 
 export const router = createBrowserRouter([
+  { path: "/login", element: <LoginPage /> },
+  { path: "/register", element: <RegisterPage /> },
   {
     path: "/",
     element: <Layout />,
