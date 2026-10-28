@@ -16,6 +16,11 @@ export type CreateProjectRequest = {
   tags: string[];
 };
 
+export type UpdateProjectRequest = Pick<
+  CreateProjectRequest,
+  "title" | "description" | "type" | "latitude" | "longitude" | "githubUrl"
+>;
+
 export type CreateProjectResponse = {
   id: number;
   title: string;
@@ -83,6 +88,50 @@ export async function getProjectById(
   // Khi backend sẵn sàng, thay dữ liệu giả bằng:
   // const response = await api.get<ProjectDetailDto>(`/api/projects/${id}`);
   // return response.data;
+}
+
+export async function getMyProjects(): Promise<ProjectDetailDto[]> {
+  await new Promise((resolve) => setTimeout(resolve, 350));
+  return Object.values(mockProjectDetails);
+
+  // Khi backend sẵn sàng, thay dữ liệu giả bằng:
+  // const response = await api.get<ProjectDetailDto[]>("/api/projects/mine");
+  // return response.data;
+}
+
+export async function updateProject(
+  id: number,
+  data: UpdateProjectRequest,
+): Promise<ProjectDetailDto> {
+  await new Promise((resolve) => setTimeout(resolve, 400));
+  const project = mockProjectDetails[id];
+  if (!project) {
+    throw new Error("Không tìm thấy dự án cần cập nhật.");
+  }
+
+  const updatedProject: ProjectDetailDto = {
+    ...project,
+    ...data,
+    description: data.description ?? null,
+    githubUrl: data.githubUrl ?? null,
+  };
+  mockProjectDetails[id] = updatedProject;
+  return updatedProject;
+
+  // Khi backend sẵn sàng, thay dữ liệu giả bằng:
+  // const response = await api.put<ProjectDetailDto>(`/api/projects/${id}`, data);
+  // return response.data;
+}
+
+export async function deleteProject(id: number): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 250));
+  if (!mockProjectDetails[id]) {
+    throw new Error("Không tìm thấy dự án cần xóa.");
+  }
+  delete mockProjectDetails[id];
+
+  // Khi backend sẵn sàng, thay dữ liệu giả bằng:
+  // await api.delete(`/api/projects/${id}`);
 }
 
 export async function createProject(
