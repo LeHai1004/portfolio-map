@@ -117,11 +117,17 @@ builder.Services.AddControllers()
         {
             var errors = context.ModelState
                 .Where(e => e.Value is { Errors.Count: > 0 })
+                .SelectMany(e => e.Value!.Errors.Select(error => new
+                {
+                    Key = ToCamelCaseFieldPath(e.Key),
+                    Message = string.IsNullOrEmpty(error.ErrorMessage)
+                        ? "Giá trị không hợp lệ"
+                        : error.ErrorMessage
+                }))
+                .GroupBy(error => error.Key)
                 .ToDictionary(
-                    e => JsonNamingPolicy.CamelCase.ConvertName(e.Key),
-                    e => e.Value!.Errors
-                        .Select(x => string.IsNullOrEmpty(x.ErrorMessage) ? "Giá trị không hợp lệ" : x.ErrorMessage)
-                        .ToArray());
+                    group => group.Key,
+                    group => group.Select(error => error.Message).ToArray());
 
             return new BadRequestObjectResult(new { message = "Dữ liệu không hợp lệ", errors });
         };
@@ -162,3 +168,11 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+static string ToCamelCaseFieldPath(string key)
+{
+    var fieldPath = key.StartsWith("$.", StringComparison.Ordinal) ? key[2..] : key;
+    return string.Join(
+        ".",
+        fieldPath.Split('.').Select(segment => JsonNamingPolicy.CamelCase.ConvertName(segment)));
+}

@@ -89,7 +89,15 @@ Làm thêm: like, comment (F6); /api/admin/projects, /api/admin/users (F7).
 
 ## Cách làm: API-first
 
-Mỗi chức năng đi qua 2 PR: (1) Hợp đồng: DTO và controller trả dữ liệu mẫu trong thư mục Mock; (2) Hiện thực: logic thật, lưu DB, xóa Mock. Hợp đồng đã merge thì không đổi tên trường, đường dẫn. Frontend làm trước bằng dữ liệu giả, khi backend xong chỉ sửa trong src/api/.
+Mỗi chức năng đi qua 2 PR: (1) Hợp đồng: DTO và controller trả dữ liệu mẫu trong thư mục `Mock`; (2) Hiện thực: logic thật, lưu DB và xóa dữ liệu mẫu trong `Mock`. Hợp đồng đã merge thì không đổi tên trường, đường dẫn. Frontend làm trước bằng dữ liệu giả, khi backend xong chỉ sửa trong `src/api/`.
+
+Id người dùng luôn là `string`. Lỗi luôn dạng { "message": "...", "errors": { "tenTruong": ["..."] } }, trong đó `errors` là mảng chuỗi cho từng trường.
+
+## Thẻ phụ thuộc và cách review PR
+
+- Thẻ cần code của thẻ khác phải chờ thẻ phụ thuộc merge rồi mới tách nhánh từ `develop` mới nhất; không tách nhánh từ nhánh của người khác.
+- Merge PR theo đúng thứ tự phụ thuộc.
+- Khi review, checkout nhánh PR, đọc đúng các file của PR và đối chiếu hợp đồng cùng quy ước. Chia góp ý thành **bắt buộc sửa** (sai hợp đồng, sai quy ước hoặc gây lỗi thật) và **không bắt buộc**.
 
 ## Tiến độ (21/10/2026)
 
@@ -101,6 +109,6 @@ Mỗi chức năng đi qua 2 PR: (1) Hợp đồng: DTO và controller trả d�
 
 ## Việc cần review ở PR hiện tại
 
-- Id người dùng phải là string (OwnerDto.Id).
-- Lỗi 400 phải có dạng { "message": "...", "errors": { "tenTruong": ["..."] } }.
-- Phụ thuộc thẻ khác thì merge theo thứ tự.
+- Id người dùng luôn là `string` (ví dụ `OwnerDto.Id`).
+- Lỗi 400 phải có dạng { "message": "...", "errors": { "tenTruong": ["..."] } }, trong đó `errors` là mảng chuỗi cho từng trường.
+- Thẻ phụ thuộc phải được merge theo thứ tự; PR vào `develop` dùng Squash merge, PR vào `main` dùng Merge.

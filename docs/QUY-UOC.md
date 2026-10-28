@@ -17,14 +17,14 @@ Công thức: `loại/chức-năng-việc-làm`
 - loại: `feature` (làm mới), `fix` (sửa lỗi), `docs` (tài liệu), `chore` (cấu hình, cài thư viện)
 - Toàn bộ viết thường, không dấu, không khoảng trắng, nối bằng gạch ngang.
 
-| Đúng | Sai | Vì sao sai |
-|---|---|---|
-| feature/auth-register-contract | Feature/Auth-Register | Có chữ hoa |
-| feature/map-cluster | feature/làm bản đồ | Có dấu và khoảng trắng |
-| fix/map-pin-not-show | fix-map | Thiếu dấu gạch chéo, tên mơ hồ |
-| feature/projects-create | quoc-test | Là tên người, không nói rõ việc |
-| docs/quy-uoc | new-branch, test, abc | Không biết làm gì |
-| feature/company-save-project | feature/company_save project | Dấu gạch dưới, khoảng trắng |
+| Đúng                           | Sai                          | Vì sao sai                      |
+| ------------------------------ | ---------------------------- | ------------------------------- |
+| feature/auth-register-contract | Feature/Auth-Register        | Có chữ hoa                      |
+| feature/map-cluster            | feature/làm bản đồ           | Có dấu và khoảng trắng          |
+| fix/map-pin-not-show           | fix-map                      | Thiếu dấu gạch chéo, tên mơ hồ  |
+| feature/projects-create        | quoc-test                    | Là tên người, không nói rõ việc |
+| docs/quy-uoc                   | new-branch, test, abc        | Không biết làm gì               |
+| feature/company-save-project   | feature/company_save project | Dấu gạch dưới, khoảng trắng     |
 
 Tên nhánh đã ghi sẵn trong thẻ Trello, chỉ việc copy.
 
@@ -50,12 +50,12 @@ Nếu đã tạo Pull Request từ nhánh cũ thì đóng PR đó và tạo lạ
 
 Công thức: `loại(chức-năng): mô tả ngắn`
 
-| Đúng | Sai |
-|---|---|
-| feat(auth): thêm API đăng ký trả dữ liệu mẫu | update |
-| fix(map): sửa lỗi ghim không hiện khi zoom | fix lung tung |
-| docs: cập nhật danh sách API | abc |
-| chore: cài thư viện react-leaflet | done |
+| Đúng                                         | Sai           |
+| -------------------------------------------- | ------------- |
+| feat(auth): thêm API đăng ký trả dữ liệu mẫu | update        |
+| fix(map): sửa lỗi ghim không hiện khi zoom   | fix lung tung |
+| docs: cập nhật danh sách API                 | abc           |
+| chore: cài thư viện react-leaflet            | done          |
 
 - Loại: feat (thêm chức năng), fix (sửa lỗi), docs (tài liệu), style (chỉnh giao diện nhỏ), refactor (viết lại cho gọn), chore (việc lặt vặt).
 - Commit nhỏ, thường xuyên. Mỗi commit một ý.
@@ -64,33 +64,48 @@ Công thức: `loại(chức-năng): mô tả ngắn`
 
 - Tiêu đề giống tiêu đề thẻ Trello. Ví dụ: `[F1][BE] Hợp đồng API register`
 - Đích của PR là `develop`, không phải `main`.
-- Dưới 300 dòng thay đổi. Dài hơn thì tách thành nhiều thẻ.
+- Khoảng 500 dòng; PR tài liệu, giao diện và file sinh tự động (migration) không tính chặt; PR logic backend nên nhỏ để dễ review.
+- PR vào `develop` dùng **Squash merge**; PR vào `main` dùng **Merge**.
 - Điền đủ mẫu mô tả (tự hiện ra nhờ file `.github/pull_request_template.md`).
 - Người duyệt phải khác người viết. Duyệt trong vòng 1 ngày.
 - Người duyệt hỏi một câu về code mà người viết không trả lời được thì chưa merge.
+
+### Thẻ phụ thuộc nhau
+
+- Nếu thẻ cần code của thẻ khác, chờ thẻ phụ thuộc được merge rồi mới tạo nhánh từ `develop` mới nhất.
+- Không tách nhánh từ nhánh của người khác.
+- Merge PR theo đúng thứ tự phụ thuộc.
+
+### Cách review PR
+
+1. Checkout nhánh của PR và đọc đúng các file thuộc PR.
+2. Đối chiếu thay đổi với hợp đồng API và quy ước của nhóm.
+3. Chia góp ý thành:
+   - **Bắt buộc sửa**: sai hợp đồng, sai quy ước hoặc gây lỗi thật.
+   - **Không bắt buộc**: góp ý cải thiện nhưng không gây lỗi và không vi phạm quy ước.
 
 ## 4. Đặt tên file, class, thư mục
 
 ### Backend (C#)
 
-| Loại | Quy ước | Ví dụ |
-|---|---|---|
-| Controller | TênChứcNăngController | AuthController, ProjectsController |
-| DTO | ViệcRequest hoặc ViệcResponse, đặt trong Dtos/chức-năng/ | Dtos/Auth/RegisterRequest.cs |
-| Service | IXService và XService, đặt trong Services/ | IAuthService, AuthService |
-| Model (bảng) | Số ít, đặt trong Models/ | Project, Tag |
+| Loại         | Quy ước                                                  | Ví dụ                              |
+| ------------ | -------------------------------------------------------- | ---------------------------------- |
+| Controller   | TênChứcNăngController                                    | AuthController, ProjectsController |
+| DTO          | ViệcRequest hoặc ViệcResponse, đặt trong Dtos/chức-năng/ | Dtos/Auth/RegisterRequest.cs       |
+| Service      | IXService và XService, đặt trong Services/               | IAuthService, AuthService          |
+| Model (bảng) | Số ít, đặt trong Models/                                 | Project, Tag                       |
 
 - Đường dẫn API: số nhiều, viết thường: `/api/projects`.
 - JSON dùng camelCase: `fullName`, `thumbnailUrl`.
 
 ### Frontend (React)
 
-| Loại | Quy ước | Ví dụ |
-|---|---|---|
+| Loại             | Quy ước        | Ví dụ                             |
+| ---------------- | -------------- | --------------------------------- |
 | Trang, component | PascalCase.tsx | RegisterPage.tsx, ProjectCard.tsx |
-| Hàm gọi API | tênApi.ts | authApi.ts |
-| Hook | useTên.ts | useProjects.ts |
-| Thư mục | Chữ thường | features/auth |
+| Hàm gọi API      | tênApi.ts      | authApi.ts                        |
+| Hook             | useTên.ts      | useProjects.ts                    |
+| Thư mục          | Chữ thường     | features/auth                     |
 
 - `src/features/<chức năng>/` chỉ chứa file của chức năng đó.
 - Thứ dùng chung nhiều chức năng thì để ở `src/components/` hoặc `src/api/`, và chỉ sửa qua PR nhỏ, báo nhóm trước.
@@ -101,11 +116,12 @@ Công thức: `loại(chức-năng): mô tả ngắn`
 - Lỗi luôn trả cùng một dạng, ví dụ:
 
 ```
-{ "message": "Dữ liệu không hợp lệ", "errors": { "email": "Email đã tồn tại" } }
+{ "message": "Dữ liệu không hợp lệ", "errors": { "email": ["Email đã tồn tại"] } }
 ```
 
+- Id người dùng luôn có kiểu `string`.
 - Danh sách dài thì phân trang: gửi `page`, `pageSize`; nhận `items`, `page`, `pageSize`, `totalItems`.
-- Mỗi chức năng đi qua 2 PR. PR 1 là Hợp đồng (DTO và controller trả dữ liệu mẫu). PR 2 là Hiện thực (logic thật, lưu DB).
+- Mỗi chức năng đi qua 2 PR. PR 1 là Hợp đồng (DTO và controller trả dữ liệu mẫu trong thư mục `Mock`). PR 2 là Hiện thực (logic thật, lưu DB); khi nối DB phải xóa dữ liệu mẫu trong `Mock`.
 - Hợp đồng đã merge thì không ai tự ý đổi tên trường hay đường dẫn. Muốn đổi thì tạo thẻ có nhãn Đổi hợp đồng và báo nhóm.
 
 ## 6. Dùng AI
