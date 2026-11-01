@@ -44,12 +44,17 @@ public static class MockProjectData
             ProjectType.AI, 16.0598, 108.2105, "ĐH Duy Tân", 4, "https://github.com/example/alpr", null, new[] { 5, 9 }, OwnerA, 200, 5),
         Make(5, "Hệ thống quản lý thư viện", "Web quản lý mượn trả sách (dự án của người khác, dùng để test 403).",
             ProjectType.Web, 15.9690, 108.2600, "ĐH FPT", 5, "https://github.com/example/library", null, new[] { 3, 8 }, OwnerB, 33, 2),
+        Make(6, "Dự án đã ẩn (mock)", "Dùng để thử bộ lọc Hidden của pins.",
+            ProjectType.Web, 16.0700, 108.1500, "ĐH Bách Khoa", 1, null, null, new[] { 1 }, OwnerB, 0, 1),
     };
 
     private static int _nextProjectId = NewProjectId - 1;
     private static int _nextImageId = NewImageId - 1;
     private static readonly object Gate = new();
+    /// <summary>Mock-only: DTO hợp đồng không có Status nên id bị ẩn nằm riêng ở đây. Xóa khi nối DB.</summary>
+    private static readonly HashSet<int> _hiddenIds = new() { 6 };
 
+    public static bool IsHidden(int id) => _hiddenIds.Contains(id);
     public static int NextProjectId() => Interlocked.Increment(ref _nextProjectId);
 
     public static int NextImageId() => Interlocked.Increment(ref _nextImageId);
