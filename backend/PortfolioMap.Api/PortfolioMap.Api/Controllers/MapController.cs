@@ -7,7 +7,7 @@ using PortfolioMap.Api.Mock;
 namespace PortfolioMap.Api.Controllers;
 
 /// <summary>
-/// HỢP ĐỒNG API bản đồ (trả dữ liệu mẫu, chưa truy cập DB, chưa lọc thật).
+/// HỢP ĐỒNG API bản đồ (dữ liệu mẫu trong bộ nhớ, chưa truy cập DB).
 /// Ghim lấy từ MockProjectData nên id khớp GET /api/projects/{id}.
 /// </summary>
 [ApiController]
@@ -19,7 +19,7 @@ public class MapController : ControllerBase
     /// <summary>
     /// Lấy các ghim trong khung đang nhìn. Quyền: Public.
     /// Bắt buộc: minLat, maxLat, minLng, maxLng. Tùy chọn: type (Web, Mobile, Game, AI, Other), tag (id).
-    /// Bản mẫu chưa lọc theo khung, type, tag mà trả toàn bộ ghim mẫu (tối đa 500).
+    /// Lọc trên dữ liệu mẫu: trong khung (gồm biên), đúng type, có tag, bỏ dự án bị ẩn. Tối đa 500 ghim.
     /// </summary>
     [HttpGet("pins")]
     [ProducesResponseType(typeof(IReadOnlyList<PinDto>), StatusCodes.Status200OK)]
@@ -43,12 +43,29 @@ public class MapController : ControllerBase
 
         if (minLat > maxLat) errors["minLat"] = new[] { "minLat không được lớn hơn maxLat" };
         if (minLng > maxLng) errors["minLng"] = new[] { "minLng không được lớn hơn maxLng" };
-        if (type is not null && !IsValidType(type))
-            errors["type"] = new[] { "Loại dự án không hợp lệ. Chỉ nhận: Web, Mobile, Game, AI, Other" };
+
+        // type chỉ nhận đúng tên: số (1, 99) hay chuỗi lạ đều bị từ chối.
+        ProjectType? typeFilter = null;
+        if (!string.IsNullOrWhiteSpace(type))
+        {
+            if (IsValidType(type))
+                typeFilter = Enum.Parse<ProjectType>(type.Trim(), ignoreCase: true);
+            else
+                errors["type"] = new[] { "Loại dự án không hợp lệ. Chỉ nhận: Web, Mobile, Game, AI, Other" };
+        }
+
         if (errors.Count > 0)
             return BadRequest(new ApiErrorResponse("Dữ liệu gửi lên không hợp lệ", errors));
 
+        double south = minLat!.Value, north = maxLat!.Value, west = minLng!.Value, east = maxLng!.Value;
+
         var pins = MockProjectData.Projects
+            .Where(p => !MockProjectData.IsHidden(p.Id))
+            .Where(p => p.Latitude >= south && p.Latitude <= north
+                     && p.Longitude >= west && p.Longitude <= east)
+            .Where(p => typeFilter is null || p.Type == typeFilter)
+            .Where(p => tag is null || p.Tags.Any(t => t.Id == tag))
+            .OrderBy(p => p.Id)
             .Select(p => new PinDto(p.Id, p.Title, p.Latitude, p.Longitude, p.Type, p.ThumbnailUrl))
             .Take(MaxPins)
             .ToList();
