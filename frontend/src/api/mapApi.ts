@@ -7,6 +7,13 @@ export type MapPin = {
   thumbnailUrl: string;
 };
 
+export type MapBounds = {
+  minLat: number;
+  maxLat: number;
+  minLng: number;
+  maxLng: number;
+};
+
 const mockPins: MapPin[] = [
   {
     id: 1,
@@ -52,7 +59,18 @@ const manyPins: MapPin[] = Array.from({ length: 40 }, (_, i) => ({
   thumbnailUrl: "",
 }));
 
-// Hiện trả dữ liệu giả. Khi backend xong chỉ sửa bên trong hàm này
-export async function getMapPins(): Promise<MapPin[]> {
-  return [...mockPins, ...manyPins];
+// Hiện lọc dữ liệu giả. Khi backend sẵn sàng chỉ cần gọi API trong hàm này.
+export async function getMapPins(bounds: MapBounds): Promise<MapPin[]> {
+  const allPins = [...mockPins, ...manyPins];
+  return allPins.filter(
+    (pin) =>
+      pin.lat >= bounds.minLat &&
+      pin.lat <= bounds.maxLat &&
+      pin.lng >= bounds.minLng &&
+      pin.lng <= bounds.maxLng,
+  );
+
+  // Khi API sẵn sàng, thay bằng:
+  // const response = await api.get<MapPin[]>("/api/map/pins", { params: bounds });
+  // return response.data;
 }
