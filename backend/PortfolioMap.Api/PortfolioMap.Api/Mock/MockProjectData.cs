@@ -3,26 +3,16 @@
 namespace PortfolioMap.Api.Mock;
 
 /// <summary>
-/// DỮ LIỆU MẪU cho giai đoạn hợp đồng. XÓA file này khi Hải nối DB thật.
-/// Quy ước test: người dùng giả là Id=1 (OwnerA). Dự án Id=5 thuộc người khác nên PUT/DELETE trả 403.
-/// Tọa độ trường chỉ là gần đúng, Sơn sẽ tra lại trên OpenStreetMap ở thẻ S0-09.
+/// DỮ LIỆU MẪU cho giai đoạn hợp đồng. XÓA file này khi nối DB thật.
+/// Người dùng giả có Id "1" (OwnerA). Dự án Id=5 thuộc người khác nên PUT/DELETE trả 403.
+/// Dữ liệu chỉ nằm trong bộ nhớ: POST/PUT/DELETE/ảnh được phản ánh ở GET, tắt app là mất.
+/// Tọa độ trường chỉ là gần đúng, Sơn sẽ chuẩn hóa ở thẻ S0-09.
 /// </summary>
 public static class MockProjectData
 {
     public const string CurrentUserId = "1";
     public const int NewProjectId = 100;
     public const int NewImageId = 100;
-    private static int _nextProjectId = NewProjectId - 1;
-    private static readonly object Gate = new();
-
-    /// <summary>Id cho dự án mới tạo, tăng dần từ 100.</summary>
-    public static int NextProjectId() => Interlocked.Increment(ref _nextProjectId);
-
-    /// <summary>Lưu dự án vừa POST vào danh sách mẫu để GET /api/projects/{id} thấy được.</summary>
-    public static void Add(ProjectDetailDto project)
-    {
-        lock (Gate) Projects.Add(project);
-    }
 
     public static readonly OwnerDto OwnerA = new("1", "Nguyễn Văn A", "/uploads/avatars/1.jpg");
     public static readonly OwnerDto OwnerB = new("2", "Trần Thị B", null);
@@ -42,7 +32,7 @@ public static class MockProjectData
         new(6, "TypeScript"), new(7, "Flutter"), new(8, "SQL Server"), new(9, "TensorFlow"), new(10, "Node.js"),
     };
 
-    public static readonly List<ProjectDetailDto> Projects = new()
+    private static readonly List<ProjectDetailDto> _projects = new()
     {
         Make(1, "App quản lý chi tiêu", "Ứng dụng ghi chép thu chi cá nhân, có biểu đồ theo tháng.",
             ProjectType.Mobile, 16.0738, 108.1499, "ĐH Bách Khoa", 1, "https://github.com/example/expense-app", null, new[] { 7, 2 }, OwnerA, 120, 20),
@@ -55,6 +45,39 @@ public static class MockProjectData
         Make(5, "Hệ thống quản lý thư viện", "Web quản lý mượn trả sách (dự án của người khác, dùng để test 403).",
             ProjectType.Web, 15.9690, 108.2600, "ĐH FPT", 5, "https://github.com/example/library", null, new[] { 3, 8 }, OwnerB, 33, 2),
     };
+
+    private static int _nextProjectId = NewProjectId - 1;
+    private static int _nextImageId = NewImageId - 1;
+    private static readonly object Gate = new();
+
+    public static int NextProjectId() => Interlocked.Increment(ref _nextProjectId);
+
+    public static int NextImageId() => Interlocked.Increment(ref _nextImageId);
+
+    /// <summary>Bản sao danh sách dự án mẫu, an toàn khi nhiều request chạy cùng lúc.</summary>
+    public static IReadOnlyList<ProjectDetailDto> Projects
+    {
+        get { lock (Gate) return _projects.ToList(); }
+    }
+
+    public static void Add(ProjectDetailDto project)
+    {
+        lock (Gate) _projects.Add(project);
+    }
+
+    public static void Replace(ProjectDetailDto project)
+    {
+        lock (Gate)
+        {
+            var index = _projects.FindIndex(p => p.Id == project.Id);
+            if (index >= 0) _projects[index] = project;
+        }
+    }
+
+    public static void Remove(int id)
+    {
+        lock (Gate) _projects.RemoveAll(p => p.Id == id);
+    }
 
     public static ProjectSummaryDto ToSummary(ProjectDetailDto p) =>
         new(p.Id, p.Title, p.Type, p.ThumbnailUrl, p.Latitude, p.Longitude, p.CreatedAt);

@@ -6,7 +6,7 @@ using PortfolioMap.Api.Mock;
 namespace PortfolioMap.Api.Controllers;
 
 /// <summary>
-/// HỢP ĐỒNG API dự án (trả dữ liệu mẫu, chưa truy cập DB, chưa upload thật).
+/// HỢP ĐỒNG API dự án (trả dữ liệu mẫu trong bộ nhớ, chưa truy cập DB, chưa upload thật).
 /// TODO khi S1-08 xong: thêm [Authorize(Roles = "Student")] cho POST/PUT/mine/images,
 /// [Authorize(Roles = "Student,Admin")] cho DELETE, và lấy userId từ token thay cho CurrentUserId.
 /// Ràng buộc {id:int} giúp "mine" và "nearby" không bị nhầm thành id.
@@ -54,7 +54,9 @@ public class ProjectsController : ControllerBase
         if (project.Owner.Id != MockProjectData.CurrentUserId) return StatusCode(403, ForbiddenError());
         if (ValidateReferences(request) is { } error) return BadRequest(error);
 
-        return Ok(MockProjectData.FromRequest(id, request, project.Owner, project));
+        var updated = MockProjectData.FromRequest(id, request, project.Owner, project);
+        MockProjectData.Replace(updated);
+        return Ok(updated);
     }
 
     /// <summary>Xóa dự án. Quyền: chủ dự án hoặc Admin.</summary>
@@ -67,6 +69,8 @@ public class ProjectsController : ControllerBase
         var project = Find(id);
         if (project is null) return NotFound(NotFoundError());
         if (project.Owner.Id != MockProjectData.CurrentUserId) return StatusCode(403, ForbiddenError());
+
+        MockProjectData.Remove(id);
         return NoContent();
     }
 
@@ -108,8 +112,11 @@ public class ProjectsController : ControllerBase
         if (!AllowedImageTypes.Contains(file.ContentType))
             return BadRequest(new ApiErrorResponse("Định dạng ảnh không hỗ trợ", new() { ["file"] = new[] { "Chỉ nhận JPEG, PNG, WebP" } }));
 
-        var dto = new ProjectImageDto(MockProjectData.NewImageId, $"/uploads/mock/{id}-new.jpg");
-        return StatusCode(StatusCodes.Status201Created, dto);
+        var imageId = MockProjectData.NextImageId();
+        var image = new ProjectImageDto(imageId, $"/uploads/mock/{id}-{imageId}.jpg");
+        var images = project.Images.Append(image).ToList();
+        MockProjectData.Replace(project with { Images = images, ThumbnailUrl = project.ThumbnailUrl ?? image.ImageUrl });
+        return StatusCode(StatusCodes.Status201Created, image);
     }
 
     /// <summary>Xóa một ảnh của dự án. Quyền: Student, chủ dự án.</summary>
@@ -124,6 +131,9 @@ public class ProjectsController : ControllerBase
         if (project.Owner.Id != MockProjectData.CurrentUserId) return StatusCode(403, ForbiddenError());
         if (project.Images.All(i => i.Id != imageId))
             return NotFound(new ApiErrorResponse("Không tìm thấy ảnh"));
+
+        var remaining = project.Images.Where(i => i.Id != imageId).ToList();
+        MockProjectData.Replace(project with { Images = remaining, ThumbnailUrl = remaining.FirstOrDefault()?.ImageUrl });
         return NoContent();
     }
 
