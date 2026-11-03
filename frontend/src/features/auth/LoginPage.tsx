@@ -1,91 +1,116 @@
 import { useState } from "react";
-import { Link as RouterLink, useNavigate } from "react-router-dom";
-import { useMutation } from "@tanstack/react-query";
 import {
   Alert,
   Box,
   Button,
-  Card,
-  CardContent,
-  Link,
+  Link as MuiLink,
+  Paper,
   TextField,
   Typography,
 } from "@mui/material";
-import { getAuthErrorMessage, login } from "../../api/authApi";
-import { setToken } from "../../api/token";
+import { Link, useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { useAuth } from "./authContextStore";
+import { getAuthApiError, type LoginRequest } from "./authApi";
+
+type LoginFormValues = LoginRequest;
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const { login, authError } = useAuth();
+  const [serverError, setServerError] = useState<string | null>(null);
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginFormValues>({ defaultValues: { email: "", password: "" } });
 
-  const mutation = useMutation({
-    mutationFn: login,
-    onSuccess: (response) => {
-      setToken(response.accessToken);
-      navigate("/");
-    },
-  });
+  const onSubmit = async (values: LoginFormValues) => {
+    setServerError(null);
+    try {
+      await login({ ...values, email: values.email.trim() });
+      navigate("/", { replace: true });
+    } catch (error: unknown) {
+      const apiError = getAuthApiError(error);
+      let hasFieldErrors = false;
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    mutation.mutate({ email: email.trim(), password });
+      for (const [field, messages] of Object.entries(apiError.errors)) {
+        const fieldError = { type: "server", message: messages.join(" ") };
+        switch (field.toLowerCase()) {
+          case "email":
+            setError("email", fieldError);
+            hasFieldErrors = true;
+            break;
+          case "password":
+            setError("password", fieldError);
+            hasFieldErrors = true;
+            break;
+        }
+      }
+
+      if (!hasFieldErrors) {
+        setServerError(apiError.message);
+      }
+    }
   };
 
   return (
-    <Box sx={{ maxWidth: 480, mx: "auto", px: 2, py: 6 }}>
-      <Card>
-        <CardContent
+    <Box sx={{ maxWidth: 480, mx: "auto", p: 3 }}>
+      <Paper sx={{ p: { xs: 3, sm: 4 } }}>
+        <Typography variant="h4" component="h1" gutterBottom>
+          Đăng nhập
+        </Typography>
+        <Typography color="text.secondary" sx={{ mb: 3 }}>
+          Tiếp tục khám phá các dự án trên bản đồ
+        </Typography>
+        <Box
           component="form"
-          onSubmit={handleSubmit}
-          sx={{ display: "grid", gap: 2, p: { xs: 3, sm: 4 } }}
+          onSubmit={handleSubmit(onSubmit)}
+          noValidate
+          sx={{ display: "grid", gap: 2 }}
         >
-          <Typography variant="h5" component="h1">
-            Đăng nhập
-          </Typography>
-          <Typography color="text.secondary">
-            Đăng nhập để tiếp tục sử dụng Portfolio Map.
-          </Typography>
-
           <TextField
             label="Email"
             type="email"
             autoComplete="email"
-            required
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            {...register("email", {
+              required: "Email là bắt buộc.",
+              pattern: {
+                value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                message: "Email không hợp lệ.",
+              },
+            })}
+            error={Boolean(errors.email)}
+            helperText={errors.email?.message}
           />
           <TextField
             label="Mật khẩu"
             type="password"
             autoComplete="current-password"
-            required
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
+            {...register("password", {
+              required: "Mật khẩu là bắt buộc.",
+              minLength: {
+                value: 8,
+                message: "Mật khẩu phải có ít nhất 8 ký tự.",
+              },
+            })}
+            error={Boolean(errors.password)}
+            helperText={errors.password?.message}
           />
-
-          {mutation.isError && (
-            <Alert severity="error">
-              {getAuthErrorMessage(mutation.error)}
-            </Alert>
-          )}
-
-          <Button
-            type="submit"
-            variant="contained"
-            disabled={mutation.isPending}
-          >
-            {mutation.isPending ? "Đang đăng nhập..." : "Đăng nhập"}
+          {authError && <Alert severity="warning">{authError}</Alert>}
+          {serverError && <Alert severity="error">{serverError}</Alert>}
+          <Button type="submit" variant="contained" disabled={isSubmitting}>
+            {isSubmitting ? "Đang đăng nhập..." : "Đăng nhập"}
           </Button>
-
-          <Typography variant="body2" sx={{ textAlign: "center" }}>
-            Chưa có tài khoản?{" "}
-            <Link component={RouterLink} to="/register">
-              Đăng ký
-            </Link>
-          </Typography>
-        </CardContent>
-      </Card>
+        </Box>
+        <Typography sx={{ mt: 2 }} color="text.secondary">
+          Chưa có tài khoản?{" "}
+          <MuiLink component={Link} to="/register">
+            Đăng ký
+          </MuiLink>
+        </Typography>
+      </Paper>
     </Box>
   );
 }
