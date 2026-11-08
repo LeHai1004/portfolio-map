@@ -1,49 +1,45 @@
 using Microsoft.AspNetCore.Mvc;
 using System;
-using System.Collections.Generic;
 using PortfolioMap.Api.Dtos.Company;
 using PortfolioMap.Api.Dtos.Common;
-using PortfolioMap.Api.Dtos.Projects; // Thêm dòng này để dùng ProjectType
+using PortfolioMap.Api.Mock;
+using Microsoft.AspNetCore.Http;
 
 namespace PortfolioMap.Api.Controllers
 {
+    // TODO: [Authorize(Roles = "Company")]
     [Route("api/saved-projects")]
     [ApiController]
     public class SavedProjectsController : ControllerBase
     {
         [HttpPost("{projectId:int}")]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
         public IActionResult SaveProject(int projectId)
         {
+            if (MockCompanyData.SavedProjectIds.Contains(projectId))
+            {
+                return Conflict(new { message = "Dự án này đã được lưu từ trước." });
+            }
+
+            MockCompanyData.SavedProjectIds.Add(projectId);
             return StatusCode(201, new { projectId = projectId, savedAt = DateTime.UtcNow });
         }
 
         [HttpDelete("{projectId:int}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
         public IActionResult UnsaveProject(int projectId)
         {
+            MockCompanyData.SavedProjectIds.Remove(projectId);
             return NoContent();
         }
 
         [HttpGet]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         public ActionResult<PagedResult<SavedProjectDto>> GetSavedProjects()
         {
-            // Tạo list dữ liệu mẫu trước
-            var items = new List<SavedProjectDto>
-            {
-                new SavedProjectDto
-                {
-                    Id = 1,
-                    Title = "Dự án mẫu",
-                    Type = ProjectType.Web, // Sửa lỗi string thành enum
-                    ThumbnailUrl = "/thumb.jpg",
-                    Latitude = 16.0738,
-                    Longitude = 108.1499,
-                    CreatedAt = DateTime.UtcNow.AddDays(-5),
-                    SavedAt = DateTime.UtcNow
-                }
-            };
-
-            // Truyền dữ liệu vào ngoặc tròn () theo đúng ý của Sỹ
-            var mockData = new PagedResult<SavedProjectDto>(items, 1, 10, 1);
+            var items = MockCompanyData.SavedProjects;
+            var mockData = new PagedResult<SavedProjectDto>(items, 1, 10, items.Count);
             
             return Ok(mockData);
         }
