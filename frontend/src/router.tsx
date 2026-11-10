@@ -10,6 +10,7 @@ import AuthProvider from "./features/auth/AuthContext";
 import LoginPage from "./features/auth/LoginPage";
 import ProtectedRoute from "./features/auth/ProtectedRoute";
 import RegisterPage from "./features/auth/RegisterPage";
+import ProfilePage from "./features/auth/ProfilePage";
 
 export const router = createBrowserRouter([
   {
@@ -22,6 +23,14 @@ export const router = createBrowserRouter([
         element: <Layout />,
         children: [
           { index: true, element: <HomePage /> },
+          {
+            path: "profile",
+            element: (
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            ),
+          },
           {
             path: "projects/new",
             element: (
