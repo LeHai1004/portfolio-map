@@ -9,4 +9,5 @@ public class AppUser : IdentityUser
     public string? Bio { get; set; }
     public bool IsLocked { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public StudentProfile? StudentProfile { get; set; }
 }
