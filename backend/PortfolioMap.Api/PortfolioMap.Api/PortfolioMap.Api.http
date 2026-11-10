@@ -34,9 +34,9 @@ Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
-  "currentPassword": "OldPassword1",
-  "newPassword": "NewPassword1",
-  "confirmNewPassword": "NewPassword1"
+  "currentPassword": "replace-with-current-password",
+  "newPassword": "replace-with-new-password",
+  "confirmNewPassword": "replace-with-new-password"
 }
 
 ### Upload avatar

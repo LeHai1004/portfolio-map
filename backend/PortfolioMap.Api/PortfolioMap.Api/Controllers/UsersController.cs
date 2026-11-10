@@ -20,6 +20,7 @@ public class UsersController : ControllerBase
     }
 
     /// <summary>Xem hồ sơ công khai của người dùng.</summary>
+    [AllowAnonymous]
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(UserProfileResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]

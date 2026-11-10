@@ -188,7 +188,6 @@ public sealed class UserService : IUserService
         return new UserProfileResponse(
             user.Id,
             user.FullName,
-            user.Email!,
             user.AvatarUrl,
             role,
             studentProfile?.UniversityId,

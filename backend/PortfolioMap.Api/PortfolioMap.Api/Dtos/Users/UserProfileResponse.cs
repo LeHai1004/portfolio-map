@@ -4,7 +4,6 @@ namespace PortfolioMap.Api.Dtos.Users;
 public sealed record UserProfileResponse(
     string Id,
     string FullName,
-    string Email,
     string? AvatarUrl,
     string Role,
     int? UniversityId,
