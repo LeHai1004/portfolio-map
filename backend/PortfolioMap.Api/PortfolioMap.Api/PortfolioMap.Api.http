@@ -1,6 +1,52 @@
 @PortfolioMap.Api_HostAddress = http://localhost:5199
+@token = replace-with-access-token
 
 GET {{PortfolioMap.Api_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+
+### Public profile
+GET {{PortfolioMap.Api_HostAddress}}/api/users/1
+Accept: application/json
+
+### Public profile not found
+GET {{PortfolioMap.Api_HostAddress}}/api/users/not-found
+Accept: application/json
+
+### Update current profile
+PUT {{PortfolioMap.Api_HostAddress}}/api/users/me
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "fullName": "Nguyễn Văn A",
+  "phoneNumber": "0901234567",
+  "universityId": 1,
+  "major": "Công nghệ thông tin",
+  "githubUrl": "https://github.com/nguyenvana",
+  "linkedInUrl": "https://www.linkedin.com/in/nguyenvana"
+}
+
+### Change password
+PUT {{PortfolioMap.Api_HostAddress}}/api/users/me/password
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "currentPassword": "replace-with-current-password",
+  "newPassword": "replace-with-new-password",
+  "confirmNewPassword": "replace-with-new-password"
+}
+
+### Upload avatar
+POST {{PortfolioMap.Api_HostAddress}}/api/users/me/avatar
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=avatarBoundary
+
+--avatarBoundary
+Content-Disposition: form-data; name="file"; filename="avatar.jpg"
+Content-Type: image/jpeg
+
+< ./avatar.jpg
+--avatarBoundary--
