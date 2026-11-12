@@ -27,7 +27,7 @@ import {
 import {
   deleteProject,
   getMyProjects,
-  type ProjectDetailDto,
+  type ProjectSummaryDto,
 } from "../../api/projectsApi";
 
 function MyProjectsSkeleton() {
@@ -60,7 +60,7 @@ export default function MyProjectsPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const [projectToDelete, setProjectToDelete] =
-    useState<ProjectDetailDto | null>(null);
+    useState<ProjectSummaryDto | null>(null);
   const navigationState = location.state as { projectUpdated?: boolean } | null;
   const query = useQuery({
     queryKey: ["projects", "mine"],
@@ -112,7 +112,7 @@ export default function MyProjectsPage() {
           >
             Không thể tải danh sách dự án. Vui lòng thử lại.
           </Alert>
-        ) : query.data.length === 0 ? (
+        ) : query.data.items.length === 0 ? (
           <Card variant="outlined">
             <CardContent sx={{ py: 5, textAlign: "center" }}>
               <Typography variant="h6">Bạn chưa có dự án nào</Typography>
@@ -136,7 +136,7 @@ export default function MyProjectsPage() {
               gap: 3,
             }}
           >
-            {query.data.map((project, index) => (
+            {query.data.items.map((project, index) => (
               <Card
                 key={project.id}
                 variant="outlined"
@@ -186,8 +186,6 @@ export default function MyProjectsPage() {
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     {project.type}
-                    {project.tags.length > 0 &&
-                      ` · ${project.tags.map((tag) => tag.name).join(", ")}`}
                   </Typography>
                 </CardContent>
                 <CardActions sx={{ px: 2, pb: 2, flexWrap: "wrap" }}>
