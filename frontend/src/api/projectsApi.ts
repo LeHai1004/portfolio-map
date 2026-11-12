@@ -13,18 +13,10 @@ export type CreateProjectRequest = {
   universityId?: number;
   githubUrl?: string;
   demoUrl?: string;
-  tags: string[];
+  tagIds: number[];
 };
 
-export type UpdateProjectRequest = Pick<
-  CreateProjectRequest,
-  "title" | "description" | "type" | "latitude" | "longitude" | "githubUrl"
->;
-
-export type CreateProjectResponse = {
-  id: number;
-  title: string;
-};
+export type UpdateProjectRequest = CreateProjectRequest;
 
 export type ProjectDetailDto = {
   id: number;
@@ -44,6 +36,23 @@ export type ProjectDetailDto = {
   owner: { id: string; fullName: string; avatarUrl: string | null };
   viewCount: number;
   createdAt: string;
+};
+
+export type ProjectSummaryDto = {
+  id: number;
+  title: string;
+  type: ProjectType;
+  thumbnailUrl: string | null;
+  latitude: number;
+  longitude: number;
+  createdAt: string;
+};
+
+export type PagedResult<T> = {
+  items: T[];
+  page: number;
+  pageSize: number;
+  totalItems: number;
 };
 
 const mockProjectDetails: Record<number, ProjectDetailDto> = {
@@ -86,16 +95,34 @@ export async function getProjectById(
   return mockProjectDetails[id] ?? null;
 
   // Khi backend sẵn sàng, thay dữ liệu giả bằng:
-  // const response = await api.get<ProjectDetailDto>(`/api/projects/${id}`);
-  // return response.data;
+  // try {
+  //   const response = await api.get<ProjectDetailDto>(`/api/projects/${id}`);
+  //   return response.data;
+  // } catch (error) {
+  //   if (isAxiosError(error) && error.response?.status === 404) return null;
+  //   throw error;
+  // }
 }
 
-export async function getMyProjects(): Promise<ProjectDetailDto[]> {
+export async function getMyProjects(): Promise<
+  PagedResult<ProjectSummaryDto>
+> {
   await new Promise((resolve) => setTimeout(resolve, 350));
-  return Object.values(mockProjectDetails);
+  const items = Object.values(mockProjectDetails).map(
+    ({ id, title, type, thumbnailUrl, latitude, longitude, createdAt }) => ({
+      id,
+      title,
+      type,
+      thumbnailUrl,
+      latitude,
+      longitude,
+      createdAt,
+    }),
+  );
+  return { items, page: 1, pageSize: 50, totalItems: items.length };
 
   // Khi backend sẵn sàng, thay dữ liệu giả bằng:
-  // const response = await api.get<ProjectDetailDto[]>("/api/projects/mine");
+  // const response = await api.get<PagedResult<ProjectSummaryDto>>("/api/projects/mine", { params: { page: 1, pageSize: 50 } });
   // return response.data;
 }
 
@@ -111,9 +138,15 @@ export async function updateProject(
 
   const updatedProject: ProjectDetailDto = {
     ...project,
-    ...data,
+    title: data.title,
     description: data.description ?? null,
+    type: data.type,
+    latitude: data.latitude,
+    longitude: data.longitude,
+    addressText: data.addressText ?? null,
+    universityId: data.universityId ?? null,
     githubUrl: data.githubUrl ?? null,
+    demoUrl: data.demoUrl ?? null,
   };
   mockProjectDetails[id] = updatedProject;
   return updatedProject;
@@ -130,18 +163,44 @@ export async function deleteProject(id: number): Promise<void> {
   }
   delete mockProjectDetails[id];
 
-  // Khi backend sẵn sàng, thay dữ liệu giả bằng:
+  // Khi backend sẵn sàng, API trả 204, không có body:
   // await api.delete(`/api/projects/${id}`);
 }
 
 export async function createProject(
   data: CreateProjectRequest,
-): Promise<CreateProjectResponse> {
+): Promise<ProjectDetailDto> {
   // Dữ liệu giả: giả lập chờ 500ms như gọi mạng thật
   await new Promise((resolve) => setTimeout(resolve, 500));
-  return { id: Math.floor(Math.random() * 1000) + 1, title: data.title };
+  const id =
+    Math.max(0, ...Object.keys(mockProjectDetails).map(Number)) + 1;
+  const project: ProjectDetailDto = {
+    id,
+    title: data.title,
+    description: data.description ?? null,
+    type: data.type,
+    latitude: data.latitude,
+    longitude: data.longitude,
+    addressText: data.addressText ?? null,
+    universityId: data.universityId ?? null,
+    universityName: null,
+    githubUrl: data.githubUrl ?? null,
+    demoUrl: data.demoUrl ?? null,
+    thumbnailUrl: null,
+    images: [],
+    tags: [],
+    owner: {
+      id: "1",
+      fullName: "Nguyễn Văn A",
+      avatarUrl: null,
+    },
+    viewCount: 0,
+    createdAt: new Date().toISOString(),
+  };
+  mockProjectDetails[id] = project;
+  return project;
 
-  // Sau này đổi thành:
-  // const res = await api.post("/api/projects", data);
-  // return res.data;
+  // Khi backend sẵn sàng, API trả 201 kèm chi tiết:
+  // const response = await api.post<ProjectDetailDto>("/api/projects", data);
+  // return response.data;
 }

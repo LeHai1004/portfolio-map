@@ -129,9 +129,13 @@ function ProjectEditorForm({ project }: { project?: ProjectDetailDto }) {
         title,
         description,
         type,
-        githubUrl,
+        githubUrl: githubUrl || undefined,
         latitude: position.latitude,
         longitude: position.longitude,
+        addressText: project.addressText ?? undefined,
+        universityId: project.universityId ?? undefined,
+        demoUrl: project.demoUrl ?? undefined,
+        tagIds: project.tags.map((tag) => tag.id),
       });
       return;
     }
@@ -140,10 +144,10 @@ function ProjectEditorForm({ project }: { project?: ProjectDetailDto }) {
       title,
       description,
       type,
-      githubUrl,
+      githubUrl: githubUrl || undefined,
       latitude: position.latitude,
       longitude: position.longitude,
-      tags: [],
+      tagIds: [],
     });
   };
 
