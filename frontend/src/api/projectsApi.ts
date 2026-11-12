@@ -1,6 +1,8 @@
 // Hàm gọi API cho dự án. Hiện trả dữ liệu giả đúng dạng hợp đồng POST /api/projects.
 // Khi backend xong chỉ cần sửa bên trong hàm createProject.
 
+import { getTags } from "./tagsApi";
+
 export type ProjectType = "Web" | "Mobile" | "Game" | "AI" | "Other";
 
 export type CreateProjectRequest = {
@@ -88,6 +90,17 @@ const mockProjectDetails: Record<number, ProjectDetailDto> = {
   },
 };
 
+async function getMockTags(tagIds: number[]) {
+  const availableTags = await getTags();
+  return tagIds.map((id) => {
+    const tag = availableTags.find((item) => item.id === id);
+    if (!tag) {
+      throw new Error(`Không tìm thấy thẻ kỹ năng ${id}.`);
+    }
+    return { id: tag.id, name: tag.name };
+  });
+}
+
 export async function getProjectById(
   id: number,
 ): Promise<ProjectDetailDto | null> {
@@ -135,6 +148,7 @@ export async function updateProject(
   if (!project) {
     throw new Error("Không tìm thấy dự án cần cập nhật.");
   }
+  const tags = await getMockTags(data.tagIds);
 
   const updatedProject: ProjectDetailDto = {
     ...project,
@@ -147,6 +161,7 @@ export async function updateProject(
     universityId: data.universityId ?? null,
     githubUrl: data.githubUrl ?? null,
     demoUrl: data.demoUrl ?? null,
+    tags,
   };
   mockProjectDetails[id] = updatedProject;
   return updatedProject;
@@ -172,6 +187,7 @@ export async function createProject(
 ): Promise<ProjectDetailDto> {
   // Dữ liệu giả: giả lập chờ 500ms như gọi mạng thật
   await new Promise((resolve) => setTimeout(resolve, 500));
+  const tags = await getMockTags(data.tagIds);
   const id =
     Math.max(0, ...Object.keys(mockProjectDetails).map(Number)) + 1;
   const project: ProjectDetailDto = {
@@ -188,7 +204,7 @@ export async function createProject(
     demoUrl: data.demoUrl ?? null,
     thumbnailUrl: null,
     images: [],
-    tags: [],
+    tags,
     owner: {
       id: "1",
       fullName: "Nguyễn Văn A",
@@ -203,4 +219,52 @@ export async function createProject(
   // Khi backend sẵn sàng, API trả 201 kèm chi tiết:
   // const response = await api.post<ProjectDetailDto>("/api/projects", data);
   // return response.data;
+}
+
+export async function uploadProjectImage(
+  projectId: number,
+  file: File,
+): Promise<{ id: number; imageUrl: string }> {
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  const project = mockProjectDetails[projectId];
+  if (!project) {
+    throw new Error("Không tìm thấy dự án cần thêm ảnh.");
+  }
+
+  const id = Math.max(0, ...project.images.map((image) => image.id)) + 1;
+  const image = {
+    id,
+    imageUrl: `/uploads/mock/${projectId}-${id}-${encodeURIComponent(file.name)}`,
+  };
+  project.images.push(image);
+  return image;
+
+  // Khi backend sẵn sàng, API trả 201:
+  // const formData = new FormData();
+  // formData.append("file", file);
+  // const response = await api.post<{ id: number; imageUrl: string }>(
+  //   `/api/projects/${projectId}/images`,
+  //   formData,
+  //   { headers: { "Content-Type": "multipart/form-data" } },
+  // );
+  // return response.data;
+}
+
+export async function deleteProjectImage(
+  projectId: number,
+  imageId: number,
+): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 250));
+  const project = mockProjectDetails[projectId];
+  if (!project) {
+    throw new Error("Không tìm thấy dự án cần xóa ảnh.");
+  }
+  const imageIndex = project.images.findIndex((image) => image.id === imageId);
+  if (imageIndex === -1) {
+    throw new Error("Không tìm thấy ảnh cần xóa.");
+  }
+  project.images.splice(imageIndex, 1);
+
+  // Khi backend sẵn sàng, API trả 204, không có body:
+  // await api.delete(`/api/projects/${projectId}/images/${imageId}`);
 }

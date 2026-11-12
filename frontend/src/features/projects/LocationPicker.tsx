@@ -1,4 +1,11 @@
-import { MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
+import { useEffect } from "react";
+import {
+  MapContainer,
+  Marker,
+  TileLayer,
+  useMap,
+  useMapEvents,
+} from "react-leaflet";
 import { Icon } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
@@ -32,6 +39,21 @@ function ClickHandler({ onChange }: { onChange: (pos: LatLng) => void }) {
   return null;
 }
 
+function FlyToValue({ value }: { value: LatLng | null }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (value) {
+      map.flyTo(
+        [value.latitude, value.longitude],
+        Math.max(map.getZoom(), 15),
+      );
+    }
+  }, [map, value]);
+
+  return null;
+}
+
 export default function LocationPicker({ value, onChange }: Props) {
   return (
     <MapContainer
@@ -44,6 +66,7 @@ export default function LocationPicker({ value, onChange }: Props) {
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <ClickHandler onChange={onChange} />
+      <FlyToValue value={value} />
       {value && (
         <Marker position={[value.latitude, value.longitude]} icon={pinIcon} />
       )}
