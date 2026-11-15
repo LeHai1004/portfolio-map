@@ -1,18 +1,13 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace PortfolioMap.Api.Dtos.Contacts
+namespace PortfolioMap.Api.Dtos.Contacts;
+
+public class CreateContactRequest
 {
-    public class CreateContactRequest
-    {
-        [Required]
-        public int ProjectId { get; set; }
+    [Required]
+    public int? ProjectId { get; set; }
 
-        [Required]
-        [MaxLength(200)]
-        public string Subject { get; set; } = string.Empty;
+    public string? Subject { get; set; }
 
-        [Required]
-        [MaxLength(2000)]
-        public string Content { get; set; } = string.Empty;
-    }
+    public string? Content { get; set; }
 }
