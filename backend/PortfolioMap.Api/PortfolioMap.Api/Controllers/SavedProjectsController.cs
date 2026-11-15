@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 using System.Linq;
 using PortfolioMap.Api.Dtos.Company;
 using PortfolioMap.Api.Dtos.Common;
-using PortfolioMap.Api.Dtos.Projects;
 using PortfolioMap.Api.Mock;
 
 namespace PortfolioMap.Api.Controllers;
@@ -65,9 +64,13 @@ public class SavedProjectsController : ControllerBase
     [ProducesResponseType(typeof(PagedResult<SavedProjectDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status403Forbidden)]
-    public ActionResult<PagedResult<SavedProjectDto>> GetSavedProjects()
+    public ActionResult<PagedResult<SavedProjectDto>> GetSavedProjects([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
-        var items = MockCompanyData.SavedProjects;
-        return Ok(new PagedResult<SavedProjectDto>(items, 1, 10, items.Count));
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 50);
+
+        var all = MockCompanyData.SavedProjects;
+        var items = all.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+        return Ok(new PagedResult<SavedProjectDto>(items, page, pageSize, all.Count));
     }
 }

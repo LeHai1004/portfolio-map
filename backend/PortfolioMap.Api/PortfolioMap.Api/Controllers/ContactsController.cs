@@ -80,12 +80,16 @@ public class ContactsController : ControllerBase
     [ProducesResponseType(typeof(PagedResult<ContactDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status403Forbidden)]
-    public ActionResult<PagedResult<ContactDto>> GetInbox()
+    public ActionResult<PagedResult<ContactDto>> GetInbox([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
-        var items = MockCompanyData.Contacts
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 50);
+
+        var all = MockCompanyData.Contacts
             .Where(contact => contact.ToUserId == MockProjectData.CurrentUserId)
             .ToList();
-        return Ok(new PagedResult<ContactDto>(items, 1, 10, items.Count));
+        var items = all.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+        return Ok(new PagedResult<ContactDto>(items, page, pageSize, all.Count));
     }
 
     [HttpGet("sent")]
@@ -93,12 +97,16 @@ public class ContactsController : ControllerBase
     [ProducesResponseType(typeof(PagedResult<ContactDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status403Forbidden)]
-    public ActionResult<PagedResult<ContactDto>> GetSentContacts()
+    public ActionResult<PagedResult<ContactDto>> GetSentContacts([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
-        var items = MockCompanyData.Contacts
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 50);
+
+        var all = MockCompanyData.Contacts
             .Where(contact => contact.FromUserId == MockCompanyData.CurrentCompanyId)
             .ToList();
-        return Ok(new PagedResult<ContactDto>(items, 1, 10, items.Count));
+        var items = all.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+        return Ok(new PagedResult<ContactDto>(items, page, pageSize, all.Count));
     }
 
     [HttpPut("{id:int}/read")]
