@@ -32,7 +32,12 @@ public class AdminController : ControllerBase
             .OrderByDescending(p => p.CreatedAt)
             .ToList();
 
-        var items = all.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+        // Tránh tràn số int khi page lớn (vd: int.MaxValue)
+        long skip = ((long)page - 1) * pageSize;
+        var items = skip >= all.Count
+            ? new List<AdminProjectDto>()
+            : all.Skip((int)skip).Take(pageSize).ToList();
+
         return Ok(new PagedResult<AdminProjectDto>(items, page, pageSize, all.Count));
     }
 
@@ -82,7 +87,12 @@ public class AdminController : ControllerBase
             .OrderBy(u => u.CreatedAt)
             .ToList();
 
-        var items = all.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+        // Tránh tràn số int khi page lớn (vd: int.MaxValue)
+        long skip = ((long)page - 1) * pageSize;
+        var items = skip >= all.Count
+            ? new List<AdminUserDto>()
+            : all.Skip((int)skip).Take(pageSize).ToList();
+
         return Ok(new PagedResult<AdminUserDto>(items, page, pageSize, all.Count));
     }
 
@@ -97,44 +107,38 @@ public class AdminController : ControllerBase
         string id,
         [FromBody] LockUserRequest request)
     {
-        var callerId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
-        var callerEmail = User.FindFirstValue(ClaimTypes.Email) ?? string.Empty;
-
-        // Khóa chính mình: 400
-        if ((!string.IsNullOrEmpty(callerId) && string.Equals(id, callerId, StringComparison.OrdinalIgnoreCase)) ||
-            (!string.IsNullOrEmpty(callerEmail) && string.Equals(id, callerEmail, StringComparison.OrdinalIgnoreCase)))
-        {
-            return BadRequest(new ApiErrorResponse(
-                "Không thể khóa chính tài khoản của mình",
-                new Dictionary<string, string[]>
-                {
-                    ["id"] = new[] { "Không thể khóa chính tài khoản của mình" }
-                }));
-        }
-
         var target = MockAdminData.Users.FirstOrDefault(u => u.Id == id);
         if (target is null)
             return NotFound(new ApiErrorResponse("Không tìm thấy người dùng"));
 
-        if (!string.IsNullOrEmpty(callerEmail) && string.Equals(target.Email, callerEmail, StringComparison.OrdinalIgnoreCase))
+        // Chỉ chặn khi KHÓA (isLocked == true), mở khóa (isLocked == false) cho qua bình thường
+        if (request.IsLocked == true)
         {
-            return BadRequest(new ApiErrorResponse(
-                "Không thể khóa chính tài khoản của mình",
-                new Dictionary<string, string[]>
-                {
-                    ["id"] = new[] { "Không thể khóa chính tài khoản của mình" }
-                }));
-        }
+            var callerId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+            var callerEmail = User.FindFirstValue(ClaimTypes.Email) ?? string.Empty;
 
-        // Khóa Admin khác: 400
-        if (string.Equals(target.Role, "Admin", StringComparison.OrdinalIgnoreCase))
-        {
-            return BadRequest(new ApiErrorResponse(
-                "Không thể khóa tài khoản Admin khác",
-                new Dictionary<string, string[]>
-                {
-                    ["id"] = new[] { "Không thể khóa tài khoản Admin khác" }
-                }));
+            // Khóa chính mình: 400
+            if ((!string.IsNullOrEmpty(callerId) && string.Equals(target.Id, callerId, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrEmpty(callerEmail) && string.Equals(target.Email, callerEmail, StringComparison.OrdinalIgnoreCase)))
+            {
+                return BadRequest(new ApiErrorResponse(
+                    "Không thể khóa chính tài khoản của mình",
+                    new Dictionary<string, string[]>
+                    {
+                        ["id"] = new[] { "Không thể khóa chính tài khoản của mình" }
+                    }));
+            }
+
+            // Khóa Admin khác: 400
+            if (string.Equals(target.Role, "Admin", StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest(new ApiErrorResponse(
+                    "Không thể khóa tài khoản Admin khác",
+                    new Dictionary<string, string[]>
+                    {
+                        ["id"] = new[] { "Không thể khóa tài khoản Admin khác" }
+                    }));
+            }
         }
 
         var updated = target with { IsLocked = request.IsLocked!.Value };
