@@ -431,3 +431,5 @@ FodyWeavers.xsd
 appsettings.Development.json
 node_modules/
 dist/
+
+**/wwwroot/uploads/
