@@ -1,7 +1,7 @@
 import axios from "axios";
 import { api } from "../../api/client";
 
-export type UserRole = "Student" | "Company";
+export type UserRole = "Student" | "Company" | "Admin";
 
 export type AuthUser = {
   id: string;
