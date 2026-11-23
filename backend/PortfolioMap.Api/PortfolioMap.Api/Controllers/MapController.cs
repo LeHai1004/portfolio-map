@@ -2,35 +2,41 @@
 using PortfolioMap.Api.Dtos.Common;
 using PortfolioMap.Api.Dtos.Map;
 using PortfolioMap.Api.Dtos.Projects;
-using PortfolioMap.Api.Mock;
+using PortfolioMap.Api.Services;
 
 namespace PortfolioMap.Api.Controllers;
 
 /// <summary>
-/// HỢP ĐỒNG API bản đồ (dữ liệu mẫu trong bộ nhớ, chưa truy cập DB).
-/// Ghim lấy từ MockProjectData nên id khớp GET /api/projects/{id}.
+/// HỢP ĐỒNG API bản đồ.
+/// Ghim được lấy từ cơ sở dữ liệu thông qua IMapService.
 /// </summary>
 [ApiController]
 [Route("api/map")]
 public class MapController : ControllerBase
 {
-    private const int MaxPins = 500;
+    private readonly IMapService _mapService;
+
+    public MapController(IMapService mapService)
+    {
+        _mapService = mapService;
+    }
 
     /// <summary>
     /// Lấy các ghim trong khung đang nhìn. Quyền: Public.
     /// Bắt buộc: minLat, maxLat, minLng, maxLng. Tùy chọn: type (Web, Mobile, Game, AI, Other), tag (id).
-    /// Lọc trên dữ liệu mẫu: trong khung (gồm biên), đúng type, có tag, bỏ dự án bị ẩn. Tối đa 500 ghim.
+    /// Lọc trong khung (gồm biên), đúng type, có tag, chỉ lấy dự án Active. Tối đa 500 ghim.
     /// </summary>
     [HttpGet("pins")]
     [ProducesResponseType(typeof(IReadOnlyList<PinDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
-    public ActionResult<IReadOnlyList<PinDto>> GetPins(
+    public async Task<ActionResult<IReadOnlyList<PinDto>>> GetPins(
         [FromQuery] double? minLat,
         [FromQuery] double? maxLat,
         [FromQuery] double? minLng,
         [FromQuery] double? maxLng,
         [FromQuery] string? type,
-        [FromQuery] int? tag)
+        [FromQuery] int? tag,
+        CancellationToken cancellationToken)
     {
         var errors = new Dictionary<string, string[]>();
 
@@ -59,16 +65,14 @@ public class MapController : ControllerBase
 
         double south = minLat!.Value, north = maxLat!.Value, west = minLng!.Value, east = maxLng!.Value;
 
-        var pins = MockProjectData.Projects
-            .Where(p => !MockProjectData.IsHidden(p.Id))
-            .Where(p => p.Latitude >= south && p.Latitude <= north
-                     && p.Longitude >= west && p.Longitude <= east)
-            .Where(p => typeFilter is null || p.Type == typeFilter)
-            .Where(p => tag is null || p.Tags.Any(t => t.Id == tag))
-            .OrderBy(p => p.Id)
-            .Select(p => new PinDto(p.Id, p.Title, p.Latitude, p.Longitude, p.Type, p.ThumbnailUrl))
-            .Take(MaxPins)
-            .ToList();
+        var pins = await _mapService.GetPinsAsync(
+            south,
+            north,
+            west,
+            east,
+            typeFilter,
+            tag,
+            cancellationToken);
 
         return Ok(pins);
     }
