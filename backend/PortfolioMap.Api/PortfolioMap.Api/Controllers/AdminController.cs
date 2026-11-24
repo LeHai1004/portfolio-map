@@ -2,43 +2,37 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PortfolioMap.Api.Dtos.Admin;
 using PortfolioMap.Api.Dtos.Common;
-using PortfolioMap.Api.Mock;
+using PortfolioMap.Api.Services;
 using System.Security.Claims;
 
 namespace PortfolioMap.Api.Controllers;
 
-/// <summary>
-/// HỢP ĐỒNG API Admin (trả dữ liệu mẫu trong bộ nhớ, chưa truy cập DB).
-/// TODO khi nối DB: thay MockAdminData bằng IAdminService, xóa thư mục Mock/MockAdminData.cs.
-/// </summary>
 [ApiController]
 [Route("api/admin")]
 [Authorize(Roles = "Admin")]
 public class AdminController : ControllerBase
 {
+    private readonly IAdminService _admin;
+
+    public AdminController(IAdminService admin)
+    {
+        _admin = admin;
+    }
+
     // ── 1. GET /api/admin/projects ──────────────────────────────────────────
 
     /// <summary>Danh sách tất cả dự án (kể cả Hidden), có phân trang.</summary>
     [HttpGet("projects")]
     [ProducesResponseType(typeof(PagedResult<AdminProjectDto>), StatusCodes.Status200OK)]
-    public ActionResult<PagedResult<AdminProjectDto>> GetProjects(
+    public async Task<ActionResult<PagedResult<AdminProjectDto>>> GetProjects(
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10)
+        [FromQuery] int pageSize = 10,
+        CancellationToken ct = default)
     {
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 50);
-
-        var all = MockAdminData.Projects
-            .OrderByDescending(p => p.CreatedAt)
-            .ToList();
-
-        // Tránh tràn số int khi page lớn (vd: int.MaxValue)
-        long skip = ((long)page - 1) * pageSize;
-        var items = skip >= all.Count
-            ? new List<AdminProjectDto>()
-            : all.Skip((int)skip).Take(pageSize).ToList();
-
-        return Ok(new PagedResult<AdminProjectDto>(items, page, pageSize, all.Count));
+        var result = await _admin.GetProjectsAsync(page, pageSize, ct);
+        return Ok(result);
     }
 
     // ── 2. PUT /api/admin/projects/{id}/status ──────────────────────────────
@@ -48,27 +42,19 @@ public class AdminController : ControllerBase
     [ProducesResponseType(typeof(AdminProjectDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
-    public ActionResult<AdminProjectDto> UpdateProjectStatus(
+    public async Task<ActionResult<AdminProjectDto>> UpdateProjectStatus(
         int id,
-        [FromBody] UpdateProjectStatusRequest request)
+        [FromBody] UpdateProjectStatusRequest request,
+        CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(request.Status) || !MockAdminData.ValidStatuses.Contains(request.Status))
+        var result = await _admin.UpdateProjectStatusAsync(id, request.Status, ct);
+        return result.Status switch
         {
-            return BadRequest(new ApiErrorResponse(
-                "Dữ liệu không hợp lệ",
-                new Dictionary<string, string[]>
-                {
-                    ["status"] = new[] { "Chỉ chấp nhận: Active, Hidden" }
-                }));
-        }
-
-        var project = MockAdminData.Projects.FirstOrDefault(p => p.Id == id);
-        if (project is null)
-            return NotFound(new ApiErrorResponse("Không tìm thấy dự án"));
-
-        var updated = project with { Status = request.Status };
-        MockAdminData.ReplaceProject(updated);
-        return Ok(updated);
+            ProjectResultStatus.Ok => Ok(result.Value),
+            ProjectResultStatus.Invalid => BadRequest(result.Error),
+            ProjectResultStatus.NotFound => NotFound(result.Error),
+            _ => BadRequest(result.Error)
+        };
     }
 
     // ── 3. GET /api/admin/users ─────────────────────────────────────────────
@@ -76,24 +62,15 @@ public class AdminController : ControllerBase
     /// <summary>Danh sách tất cả người dùng, có phân trang.</summary>
     [HttpGet("users")]
     [ProducesResponseType(typeof(PagedResult<AdminUserDto>), StatusCodes.Status200OK)]
-    public ActionResult<PagedResult<AdminUserDto>> GetUsers(
+    public async Task<ActionResult<PagedResult<AdminUserDto>>> GetUsers(
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10)
+        [FromQuery] int pageSize = 10,
+        CancellationToken ct = default)
     {
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 50);
-
-        var all = MockAdminData.Users
-            .OrderBy(u => u.CreatedAt)
-            .ToList();
-
-        // Tránh tràn số int khi page lớn (vd: int.MaxValue)
-        long skip = ((long)page - 1) * pageSize;
-        var items = skip >= all.Count
-            ? new List<AdminUserDto>()
-            : all.Skip((int)skip).Take(pageSize).ToList();
-
-        return Ok(new PagedResult<AdminUserDto>(items, page, pageSize, all.Count));
+        var result = await _admin.GetUsersAsync(page, pageSize, ct);
+        return Ok(result);
     }
 
     // ── 4. PUT /api/admin/users/{id}/lock ──────────────────────────────────
@@ -103,46 +80,26 @@ public class AdminController : ControllerBase
     [ProducesResponseType(typeof(AdminUserDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
-    public ActionResult<AdminUserDto> LockUser(
+    public async Task<ActionResult<AdminUserDto>> LockUser(
         string id,
-        [FromBody] LockUserRequest request)
+        [FromBody] LockUserRequest request,
+        CancellationToken ct = default)
     {
-        var target = MockAdminData.Users.FirstOrDefault(u => u.Id == id);
-        if (target is null)
-            return NotFound(new ApiErrorResponse("Không tìm thấy người dùng"));
+        var callerId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+        var callerEmail = User.FindFirstValue(ClaimTypes.Email) ?? string.Empty;
+        var result = await _admin.LockUserAsync(
+            id,
+            request.IsLocked,
+            callerId,
+            callerEmail,
+            ct);
 
-        // Chỉ chặn khi KHÓA (isLocked == true), mở khóa (isLocked == false) cho qua bình thường
-        if (request.IsLocked == true)
+        return result.Status switch
         {
-            var callerId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
-            var callerEmail = User.FindFirstValue(ClaimTypes.Email) ?? string.Empty;
-
-            // Khóa chính mình: 400
-            if ((!string.IsNullOrEmpty(callerId) && string.Equals(target.Id, callerId, StringComparison.OrdinalIgnoreCase)) ||
-                (!string.IsNullOrEmpty(callerEmail) && string.Equals(target.Email, callerEmail, StringComparison.OrdinalIgnoreCase)))
-            {
-                return BadRequest(new ApiErrorResponse(
-                    "Không thể khóa chính tài khoản của mình",
-                    new Dictionary<string, string[]>
-                    {
-                        ["id"] = new[] { "Không thể khóa chính tài khoản của mình" }
-                    }));
-            }
-
-            // Khóa Admin khác: 400
-            if (string.Equals(target.Role, "Admin", StringComparison.OrdinalIgnoreCase))
-            {
-                return BadRequest(new ApiErrorResponse(
-                    "Không thể khóa tài khoản Admin khác",
-                    new Dictionary<string, string[]>
-                    {
-                        ["id"] = new[] { "Không thể khóa tài khoản Admin khác" }
-                    }));
-            }
-        }
-
-        var updated = target with { IsLocked = request.IsLocked!.Value };
-        MockAdminData.ReplaceUser(updated);
-        return Ok(updated);
+            ProjectResultStatus.Ok => Ok(result.Value),
+            ProjectResultStatus.Invalid => BadRequest(result.Error),
+            ProjectResultStatus.NotFound => NotFound(result.Error),
+            _ => BadRequest(result.Error)
+        };
     }
 }
