@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using PortfolioMap.Api.Dtos.Common;      // KIỂM TRA: namespace của PagedResult
+using PortfolioMap.Api.Dtos.Common;
 using PortfolioMap.Api.Dtos.Projects;
 using PortfolioMap.Api.Dtos.Search;
 using PortfolioMap.Api.Mock;
@@ -44,8 +44,7 @@ public class ProjectSearchController : ControllerBase
         var (items, total) = MockSearchData.Search(
             query.Keyword, query.Tag, type, query.UniversityId, sort == "views", query.Page, query.PageSize);
 
-        // KIỂM TRA: thứ tự tham số constructor của PagedResult
-        return Ok(new PagedResult<ProjectSummaryDto>(items, total, query.Page, query.PageSize));
+        return Ok(new PagedResult<ProjectSummaryDto>(items, query.Page, query.PageSize, total));
     }
 
     /// <summary>Tìm dự án trong bán kính, gần đến xa, tối đa 100 (dữ liệu mẫu).</summary>
@@ -58,10 +57,12 @@ public class ProjectSearchController : ControllerBase
         var errors = new Dictionary<string, string[]>();
 
         if (lat is null) errors["lat"] = new[] { "Thiếu lat" };
-        else if (lat < -90 || lat > 90) errors["lat"] = new[] { "lat phải từ -90 đến 90" };
+        else if (double.IsNaN(lat.Value) || lat < -90 || lat > 90)
+            errors["lat"] = new[] { "lat phải từ -90 đến 90" };
 
         if (lng is null) errors["lng"] = new[] { "Thiếu lng" };
-        else if (lng < -180 || lng > 180) errors["lng"] = new[] { "lng phải từ -180 đến 180" };
+        else if (double.IsNaN(lng.Value) || lng < -180 || lng > 180)
+            errors["lng"] = new[] { "lng phải từ -180 đến 180" };
 
         if (double.IsNaN(radiusKm) || radiusKm <= 0 || radiusKm > 50)
             errors["radiusKm"] = new[] { "radiusKm phải lớn hơn 0 và tối đa 50" };
@@ -71,7 +72,6 @@ public class ProjectSearchController : ControllerBase
         return Ok(MockSearchData.Nearby(lat!.Value, lng!.Value, radiusKm));
     }
 
-    // KIỂM TRA: nếu dự án đã có sẵn lớp lỗi { message, errors } thì dùng lớp đó thay cho object này
     private static object ErrorBody(Dictionary<string, string[]> errors) => new
     {
         message = errors.Count == 1 ? errors.Values.First()[0] : "Dữ liệu không hợp lệ.",
