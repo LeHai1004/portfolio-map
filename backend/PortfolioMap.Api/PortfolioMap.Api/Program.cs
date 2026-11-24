@@ -103,6 +103,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IProjectsService, ProjectsService>();
 builder.Services.AddScoped<ICompaniesService, CompaniesService>();
 builder.Services.AddScoped<ISavedProjectsService, SavedProjectsService>();
+builder.Services.AddScoped<IContactsService, ContactsService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IMapService, MapService>();
 builder.Services.AddAuthorization();
