@@ -40,31 +40,24 @@ public static class MockInteractionData
         lock (Gate) return ProjectIds.Contains(projectId);
     }
 
-    public static bool LikeExists(string userId, int projectId)
-    {
-        lock (Gate) return Likes.Contains((userId, projectId));
-    }
-
-    public static LikeStatusDto AddLike(string userId, int projectId)
+    public static bool TryAddLike(
+        string userId,
+        int projectId,
+        out LikeStatusDto status)
     {
         lock (Gate)
         {
-            Likes.Add((userId, projectId));
-            return new LikeStatusDto(
+            var added = Likes.Add((userId, projectId));
+            status = new LikeStatusDto(
                 Likes.Count(item => item.ProjectId == projectId),
                 true);
+            return added;
         }
     }
 
-    public static LikeStatusDto RemoveLike(string userId, int projectId)
+    public static bool TryRemoveLike(string userId, int projectId)
     {
-        lock (Gate)
-        {
-            Likes.Remove((userId, projectId));
-            return new LikeStatusDto(
-                Likes.Count(item => item.ProjectId == projectId),
-                false);
-        }
+        lock (Gate) return Likes.Remove((userId, projectId));
     }
 
     public static LikeStatusDto GetLikeStatus(int projectId, string? userId)
@@ -93,8 +86,12 @@ public static class MockInteractionData
                 .OrderByDescending(comment => comment.CreatedAt)
                 .ThenByDescending(comment => comment.Id);
             totalItems = query.Count();
+            var offset = (long)(page - 1) * pageSize;
+            if (offset >= totalItems)
+                return Array.Empty<CommentDto>();
+
             return query
-                .Skip((page - 1) * pageSize)
+                .Skip((int)offset)
                 .Take(pageSize)
                 .ToList();
         }

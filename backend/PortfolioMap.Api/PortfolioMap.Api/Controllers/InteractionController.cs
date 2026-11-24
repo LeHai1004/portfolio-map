@@ -28,7 +28,7 @@ public class InteractionController : ControllerBase
         if (!MockInteractionData.ProjectExists(id))
             return NotFound(ProjectError("Dự án không tồn tại"));
 
-        if (MockInteractionData.LikeExists(userId, id))
+        if (!MockInteractionData.TryAddLike(userId, id, out var status))
         {
             return Conflict(new ApiErrorResponse(
                 "Bạn đã thích dự án này",
@@ -38,7 +38,6 @@ public class InteractionController : ControllerBase
                 }));
         }
 
-        var status = MockInteractionData.AddLike(userId, id);
         return StatusCode(StatusCodes.Status201Created, status);
     }
 
@@ -53,7 +52,7 @@ public class InteractionController : ControllerBase
             return Unauthorized(new ApiErrorResponse("Chưa đăng nhập hoặc token sai"));
 
         if (!MockInteractionData.ProjectExists(id) ||
-            !MockInteractionData.LikeExists(userId, id))
+            !MockInteractionData.TryRemoveLike(userId, id))
         {
             return NotFound(new ApiErrorResponse(
                 "Không tìm thấy lượt thích hoặc dự án",
@@ -63,7 +62,6 @@ public class InteractionController : ControllerBase
                 }));
         }
 
-        MockInteractionData.RemoveLike(userId, id);
         return NoContent();
     }
 
