@@ -1,4 +1,5 @@
 import { isAxiosError } from "axios";
+import { api } from "./client";
 
 export type InboxMessageDto = {
   id: number;
@@ -14,61 +15,87 @@ export type InboxMessageDto = {
   createdAt: string;
 };
 
-const mockInboxMessages: InboxMessageDto[] = [
-  {
-    id: 1,
+export type ContactDto = {
+  id: number;
+  fromUserId: string;
+  fromName: string;
+  toUserId: string;
+  toName: string;
+  projectId: number | null;
+  projectTitle: string | null;
+  subject: string;
+  content: string;
+  isRead: boolean;
+  createdAt: string;
+};
+
+export type PagedResult<T> = {
+  items: T[];
+  page: number;
+  pageSize: number;
+  totalItems: number;
+};
+
+let inboxCache: InboxMessageDto[] = [];
+
+function toInboxMessage(item: ContactDto): InboxMessageDto {
+  return {
+    id: item.id,
     fromCompany: {
-      id: "1",
-      companyName: "Công ty Công nghệ Đà Nẵng",
+      id: item.fromUserId,
+      companyName: item.fromName,
       logoUrl: null,
     },
-    subject: "Cơ hội thực tập Frontend",
-    projectTitle: "Website portfolio sinh viên",
-    content:
-      "Chào bạn, đội ngũ của chúng tôi đã xem qua dự án portfolio và rất ấn tượng với cách bạn tổ chức giao diện. Bạn có thể chia sẻ thêm về kinh nghiệm React và thời gian có thể bắt đầu thực tập không?",
-    isRead: false,
-    createdAt: "2026-10-27T08:30:00Z",
-  },
-  {
-    id: 2,
-    fromCompany: {
-      id: "2",
-      companyName: "Blue Ocean Labs",
-      logoUrl: null,
-    },
-    subject: "Trao đổi về dự án quản lý chi tiêu",
-    projectTitle: "App quản lý chi tiêu",
-    content:
-      "Xin chào, chúng tôi muốn tìm hiểu thêm về phần đồng bộ dữ liệu và các công nghệ bạn đã sử dụng trong ứng dụng.",
-    isRead: true,
-    createdAt: "2026-10-25T10:15:00Z",
-  },
-];
+    subject: item.subject,
+    projectTitle: item.projectTitle,
+    content: item.content,
+    isRead: item.isRead,
+    createdAt: item.createdAt,
+  };
+}
 
 export async function getInbox(): Promise<InboxMessageDto[]> {
-  await new Promise((resolve) => setTimeout(resolve, 300));
-  return mockInboxMessages;
+  const response = await api.get<PagedResult<ContactDto>>(
+    "/api/contacts/inbox",
+  );
+  inboxCache = response.data.items.map(toInboxMessage);
+  return inboxCache;
+}
 
-  // Khi backend sẵn sàng, thay dữ liệu giả bằng:
-  // const response = await api.get<InboxMessageDto[]>("/api/contacts/inbox");
-  // return response.data;
+export async function getSentContacts(
+  page = 1,
+  pageSize = 10,
+): Promise<PagedResult<ContactDto>> {
+  const response = await api.get<PagedResult<ContactDto>>(
+    "/api/contacts/sent",
+    { params: { page, pageSize } },
+  );
+  return response.data;
 }
 
 export async function markInboxMessageAsRead(
   id: number,
 ): Promise<InboxMessageDto | null> {
-  await new Promise((resolve) => setTimeout(resolve, 200));
-  const message = mockInboxMessages.find((item) => item.id === id);
-  if (!message) {
-    return null;
+  try {
+    await api.put(`/api/contacts/${id}/read`);
+  } catch (error) {
+    if (isAxiosError(error) && error.response?.status === 404) {
+      return null;
+    }
+    throw error;
   }
 
-  message.isRead = true;
-  return message;
+  const cached = inboxCache.find((item) => item.id === id);
+  if (cached) {
+    const updated = { ...cached, isRead: true };
+    inboxCache = inboxCache.map((item) =>
+      item.id === id ? updated : item,
+    );
+    return updated;
+  }
 
-  // Khi backend sẵn sàng, thay dữ liệu giả bằng:
-  // const response = await api.put<InboxMessageDto>(`/api/contacts/${id}/read`);
-  // return response.data;
+  const inbox = await getInbox();
+  return inbox.find((item) => item.id === id) ?? null;
 }
 
 export type CreateContactRequest = {
@@ -99,8 +126,6 @@ export class ContactValidationError extends Error {
   }
 }
 
-let nextMockContactId = 3;
-
 export async function sendContactMessage(
   data: CreateContactRequest,
 ): Promise<CreateContactResponse> {
@@ -119,18 +144,17 @@ export async function sendContactMessage(
     throw new ContactValidationError(errors);
   }
 
-  await new Promise((resolve) => setTimeout(resolve, 350));
+  const response = await api.post<{ id: number; createdAt: string }>(
+    "/api/contacts",
+    data,
+  );
   return {
-    id: nextMockContactId++,
+    id: response.data.id,
     projectId: data.projectId,
-    subject: data.subject,
-    content: data.content,
-    createdAt: new Date().toISOString(),
+    subject: data.subject.trim(),
+    content: data.content.trim(),
+    createdAt: response.data.createdAt,
   };
-
-  // Khi backend sẵn sàng, thay dữ liệu giả bằng:
-  // const response = await api.post<CreateContactResponse>("/api/contacts", data);
-  // return response.data;
 }
 
 export function getContactFieldErrors(
