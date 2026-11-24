@@ -44,6 +44,8 @@ Việc chung: Hải giữ file dùng chung, tạo migration, duyệt và merge P
 | StudentProfiles | UserId, UniversityId, Major, GithubUrl, LinkedInUrl |
 | CompanyProfiles | UserId, CompanyName, Website, Address, Description, LogoUrl |
 | SavedProjects | UserId, ProjectId, SavedAt |
+| Likes | UserId (PK), ProjectId (PK), CreatedAt; User: Restrict, Project: Cascade |
+| Comments | Id, ProjectId, UserId, Content (bắt buộc, tối đa 1000), CreatedAt; chỉ mục (ProjectId, CreatedAt); User: Restrict, Project: Cascade |
 | ContactMessages | Id, FromUserId, ToUserId, ProjectId, Subject, Content, IsRead, CreatedAt |
 
 Lưu ý: Point tạo theo thứ tự (longitude, latitude), SRID 4326. Chỉ Hải tạo migration.
