@@ -144,47 +144,35 @@ public sealed class ContactsService : IContactsService
             .Where(predicate);
 
         var totalItems = await query.CountAsync(ct);
-        var messages = await query
-            .Include(message => message.FromUser)
-            .Include(message => message.ToUser)
-            .Include(message => message.Project)
+        var items = await query
             .OrderByDescending(message => message.CreatedAt)
             .ThenByDescending(message => message.Id)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .ToListAsync(ct);
-
-        var fromIds = messages.Select(message => message.FromUserId).Distinct().ToList();
-        var companyNames = await _db.CompanyProfiles
-            .AsNoTracking()
-            .Where(profile => fromIds.Contains(profile.UserId))
-            .Select(profile => new { profile.UserId, profile.CompanyName })
-            .ToDictionaryAsync(profile => profile.UserId, ct);
-
-        var items = messages.Select(message =>
-        {
-            var fromName = message.FromUser?.FullName ?? string.Empty;
-            if (companyNames.TryGetValue(message.FromUserId, out var company) &&
-                !string.IsNullOrWhiteSpace(company.CompanyName))
-            {
-                fromName = company.CompanyName.Trim();
-            }
-
-            return new ContactDto
+            .Select(message => new ContactDto
             {
                 Id = message.Id,
                 FromUserId = message.FromUserId,
-                FromName = fromName,
+                FromName = _db.CompanyProfiles
+                    .AsNoTracking()
+                    .Where(profile => profile.UserId == message.FromUserId)
+                    .Select(profile => profile.CompanyName)
+                    .FirstOrDefault()
+                    ?? (message.FromUser == null
+                        ? string.Empty
+                        : message.FromUser.FullName),
                 ToUserId = message.ToUserId,
-                ToName = message.ToUser?.FullName ?? string.Empty,
-                ProjectId = message.ProjectId,
-                ProjectTitle = message.Project?.Title,
+                ToName = message.ToUser == null
+                    ? string.Empty
+                    : message.ToUser.FullName,
+                ProjectId = message.Project == null ? null : message.ProjectId,
+                ProjectTitle = message.Project == null ? null : message.Project.Title,
                 Subject = message.Subject,
                 Content = message.Content,
                 IsRead = message.IsRead,
                 CreatedAt = message.CreatedAt
-            };
-        }).ToList();
+            })
+            .ToListAsync(ct);
 
         return new PagedResult<ContactDto>(
             items,
