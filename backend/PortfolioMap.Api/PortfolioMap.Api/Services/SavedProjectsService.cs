@@ -19,10 +19,13 @@ public sealed class SavedProjectsService : ISavedProjectsService
         int projectId,
         CancellationToken ct = default)
     {
-        var exists = await _db.Projects
+        var project = await _db.Projects
             .AsNoTracking()
-            .AnyAsync(project => project.Id == projectId, ct);
-        if (!exists)
+            .Where(item => item.Id == projectId)
+            .Select(item => new { item.Status })
+            .FirstOrDefaultAsync(ct);
+        if (project is null
+            || string.Equals(project.Status?.ToString(), "Hidden", StringComparison.OrdinalIgnoreCase))
         {
             return SavedProjectResult.NotFound(
                 "Không tìm thấy dự án");
@@ -82,29 +85,24 @@ public sealed class SavedProjectsService : ISavedProjectsService
             join project in _db.Projects.AsNoTracking()
                 on saved.ProjectId equals project.Id
             where saved.UserId == userId
-            select new { saved.SavedAt, Project = project };
+            select new SavedProjectDto(
+                new ProjectSummaryDto(
+                    project.Id,
+                    project.Title,
+                    ParseType(project.Type),
+                    project.ThumbnailUrl,
+                    project.Latitude,
+                    project.Longitude,
+                    project.CreatedAt),
+                saved.SavedAt);
 
         var totalItems = await query.CountAsync(ct);
-        var rows = await query
-            .OrderByDescending(row => row.SavedAt)
-            .ThenByDescending(row => row.Project.Id)
+        var items = await query
+            .OrderByDescending(item => item.SavedAt)
+            .ThenByDescending(item => item.Project.Id)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(ct);
-
-        var items = rows.Select(row =>
-        {
-            var project = row.Project;
-            var summary = new ProjectSummaryDto(
-                project.Id,
-                project.Title,
-                ParseType(project.Type),
-                project.ThumbnailUrl,
-                project.Latitude,
-                project.Longitude,
-                project.CreatedAt);
-            return new SavedProjectDto(summary, row.SavedAt);
-        }).ToList();
 
         return new PagedResult<SavedProjectDto>(
             items,
