@@ -1,10 +1,10 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using System.Linq;
 using PortfolioMap.Api.Dtos.Company;
 using PortfolioMap.Api.Dtos.Common;
-using PortfolioMap.Api.Mock;
+using PortfolioMap.Api.Services;
 
 namespace PortfolioMap.Api.Controllers;
 
@@ -13,32 +13,48 @@ namespace PortfolioMap.Api.Controllers;
 [Route("api/saved-projects")]
 public class SavedProjectsController : ControllerBase
 {
+    private readonly ISavedProjectsService _savedProjects;
+
+    public SavedProjectsController(ISavedProjectsService savedProjects) =>
+        _savedProjects = savedProjects;
+
+    private string? CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier);
+
     [HttpPost("{projectId:int}")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
-    public IActionResult SaveProject(int projectId)
+    public async Task<IActionResult> SaveProject(int projectId, CancellationToken ct)
     {
-        var project = MockProjectData.Projects.FirstOrDefault(p => p.Id == projectId);
-        if (project is null)
+        if (string.IsNullOrWhiteSpace(CurrentUserId))
         {
-            return NotFound(new ApiErrorResponse(
-                "Không tìm thấy dự án",
-                new() { ["projectId"] = new[] { "Dự án không tồn tại" } }));
+            return Unauthorized(new ApiErrorResponse(
+                "Chưa đăng nhập hoặc token sai"));
         }
 
-        if (MockCompanyData.SavedProjects.Any(p => p.Project.Id == projectId))
+        var result = await _savedProjects.SaveAsync(CurrentUserId, projectId, ct);
+        if (!result.IsOk)
         {
-            return Conflict(new ApiErrorResponse(
-                "Dự án này đã được lưu từ trước.",
-                new() { ["projectId"] = new[] { "Dự án này đã được lưu từ trước" } }));
+            var errors = new Dictionary<string, string[]>
+            {
+                ["projectId"] = new[] { result.Error?.Message ?? "Dự án không hợp lệ" }
+            };
+            var error = new ApiErrorResponse(
+                result.Error?.Message ?? "Dự án không hợp lệ",
+                errors);
+
+            return result.Status switch
+            {
+                SavedProjectResultStatus.NotFound => NotFound(error),
+                SavedProjectResultStatus.Conflict => Conflict(error),
+                _ => StatusCode(StatusCodes.Status500InternalServerError, error)
+            };
         }
 
-        var savedAt = DateTime.UtcNow;
-        MockCompanyData.SavedProjects.Add(new SavedProjectDto(MockProjectData.ToSummary(project), savedAt));
-        return StatusCode(StatusCodes.Status201Created, new { projectId, savedAt });
+        return StatusCode(StatusCodes.Status201Created,
+            new { projectId, savedAt = result.SavedAt });
     }
 
     [HttpDelete("{projectId:int}")]
@@ -46,31 +62,45 @@ public class SavedProjectsController : ControllerBase
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
-    public IActionResult UnsaveProject(int projectId)
+    public async Task<IActionResult> UnsaveProject(int projectId, CancellationToken ct)
     {
-        var projectToRemove = MockCompanyData.SavedProjects.FirstOrDefault(p => p.Project.Id == projectId);
-        if (projectToRemove is null)
+        if (string.IsNullOrWhiteSpace(CurrentUserId))
         {
-            return NotFound(new ApiErrorResponse(
-                "Dự án chưa được lưu",
-                new() { ["projectId"] = new[] { "Dự án chưa được lưu" } }));
+            return Unauthorized(new ApiErrorResponse(
+                "Chưa đăng nhập hoặc token sai"));
         }
 
-        MockCompanyData.SavedProjects.Remove(projectToRemove);
-        return NoContent();
+        var result = await _savedProjects.UnsaveAsync(CurrentUserId, projectId, ct);
+        if (result.IsOk) return NoContent();
+
+        return NotFound(new ApiErrorResponse(
+            result.Error?.Message ?? "Dự án chưa được lưu",
+            new Dictionary<string, string[]>
+            {
+                ["projectId"] = new[] { result.Error?.Message ?? "Dự án chưa được lưu" }
+            }));
     }
 
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<SavedProjectDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status403Forbidden)]
-    public ActionResult<PagedResult<SavedProjectDto>> GetSavedProjects([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    public async Task<ActionResult<PagedResult<SavedProjectDto>>> GetSavedProjects(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken ct = default)
     {
-        page = Math.Max(1, page);
-        pageSize = Math.Clamp(pageSize, 1, 50);
+        if (string.IsNullOrWhiteSpace(CurrentUserId))
+        {
+            return Unauthorized(new ApiErrorResponse(
+                "Chưa đăng nhập hoặc token sai"));
+        }
 
-        var all = MockCompanyData.SavedProjects;
-        var items = all.Skip((page - 1) * pageSize).Take(pageSize).ToList();
-        return Ok(new PagedResult<SavedProjectDto>(items, page, pageSize, all.Count));
+        var result = await _savedProjects.GetAsync(
+            CurrentUserId,
+            page,
+            pageSize,
+            ct);
+        return Ok(result);
     }
 }
