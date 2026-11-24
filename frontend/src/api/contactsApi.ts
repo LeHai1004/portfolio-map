@@ -94,8 +94,40 @@ export async function markInboxMessageAsRead(
     return updated;
   }
 
-  const inbox = await getInbox();
-  return inbox.find((item) => item.id === id) ?? null;
+  let page = 1;
+  let pageSize = 10;
+  let totalItems = Number.POSITIVE_INFINITY;
+
+  while ((page - 1) * pageSize < totalItems) {
+    const response = await api.get<PagedResult<ContactDto>>(
+      "/api/contacts/inbox",
+      { params: { page, pageSize } },
+    );
+    const result = response.data;
+    const message = result.items.find((item) => item.id === id);
+
+    if (message) {
+      const updated = { ...toInboxMessage(message), isRead: true };
+      inboxCache = [...inboxCache, updated];
+      return updated;
+    }
+
+    if (
+      result.page !== page ||
+      result.pageSize < 1 ||
+      result.totalItems < 0
+    ) {
+      throw new Error("API trả về thông tin phân trang inbox không hợp lệ.");
+    }
+
+    page = result.page + 1;
+    pageSize = result.pageSize;
+    totalItems = result.totalItems;
+  }
+
+  throw new Error(
+    `Đã đánh dấu thư ${id} đã đọc nhưng không tìm thấy trong inbox.`,
+  );
 }
 
 export type CreateContactRequest = {
