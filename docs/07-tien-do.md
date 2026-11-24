@@ -1,6 +1,6 @@
 # Tiến độ
 
-Cập nhật lần cuối: 29/10/2026. Mỗi lần xong việc thì sửa file này.
+Cập nhật lần cuối: 10/11/2026. Mỗi lần xong việc thì sửa file này.
 
 ## Đang chờ người khác
 
@@ -18,6 +18,7 @@ Cập nhật lần cuối: 29/10/2026. Mỗi lần xong việc thì sửa file n
 
 ## Đã xong
 
+- Hồ sơ công khai: bỏ email khỏi response; build backend thành công. T-08–T-16 chưa chạy qua Scalar vì API chưa khởi động.
 - Dọn nhánh máy Hải, còn develop, main, pr-16.
 - Trello: các thẻ S2-07, S1-13, S1-15, S1-16, S1-17, S1-18, Dự án của tôi, Chế độ sửa dự án, review #33 đã sang Xong.
 

@@ -423,6 +423,7 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+.playwright-mcp/
 
 # Official VS Code C# Dev Kit Extension exclusion
 #*.lscache

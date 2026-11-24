@@ -42,7 +42,7 @@ public class AppDbContext : IdentityDbContext<AppUser>
         builder.Entity<StudentProfile>(e =>
         {
             e.HasKey(s => s.UserId);
-            e.HasOne(s => s.User).WithOne()
+            e.HasOne(s => s.User).WithOne(u => u.StudentProfile)
                 .HasForeignKey<StudentProfile>(s => s.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
             e.HasOne(s => s.University).WithMany()
