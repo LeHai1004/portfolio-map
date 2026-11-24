@@ -1,165 +1,128 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using PortfolioMap.Api.Dtos.Common;
 using PortfolioMap.Api.Dtos.Projects;
-using PortfolioMap.Api.Mock;
+using PortfolioMap.Api.Services;
 
 namespace PortfolioMap.Api.Controllers;
 
 /// <summary>
-/// HỢP ĐỒNG API dự án (trả dữ liệu mẫu trong bộ nhớ, chưa truy cập DB, chưa upload thật).
-/// TODO khi S1-08 xong: thêm [Authorize(Roles = "Student")] cho POST/PUT/mine/images,
-/// [Authorize(Roles = "Student,Admin")] cho DELETE, và lấy userId từ token thay cho CurrentUserId.
+/// API dự án lưu DB. Hợp đồng (đường dẫn, mã trạng thái, DTO) giữ nguyên như S1-02.
 /// Ràng buộc {id:int} giúp "mine" và "nearby" không bị nhầm thành id.
 /// </summary>
 [ApiController]
 [Route("api/projects")]
 public class ProjectsController : ControllerBase
 {
-    private const long MaxImageBytes = 5 * 1024 * 1024;
-    private static readonly string[] AllowedImageTypes = { "image/jpeg", "image/png", "image/webp" };
+    private readonly IProjectsService _projects;
+
+    public ProjectsController(IProjectsService projects) => _projects = projects;
+
+    private string? CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+    private static ApiErrorResponse NoUser() => new("Chưa đăng nhập hoặc token sai");
 
     /// <summary>Thả ghim dự án mới. Quyền: Student.</summary>
     [HttpPost]
+    [Authorize(Roles = "Student")]
     [ProducesResponseType(typeof(ProjectDetailDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
-    public ActionResult<ProjectDetailDto> Create([FromBody] ProjectUpsertRequest request)
+    public async Task<ActionResult<ProjectDetailDto>> Create([FromBody] ProjectUpsertRequest request, CancellationToken ct)
     {
-        if (ValidateReferences(request) is { } error) return BadRequest(error);
+        if (CurrentUserId is not { } userId) return Unauthorized(NoUser());
 
-        var dto = MockProjectData.FromRequest(MockProjectData.NextProjectId(), request, MockProjectData.OwnerA, null);
-        MockProjectData.Add(dto);
-        return CreatedAtAction(nameof(GetById), new { id = dto.Id }, dto);
+        var result = await _projects.CreateAsync(userId, request, ct);
+        if (!result.IsOk) return Fail(result);
+        return CreatedAtAction(nameof(GetById), new { id = result.Value!.Id }, result.Value);
     }
 
-    /// <summary>Xem chi tiết dự án (thật sẽ tăng lượt xem). Quyền: Public.</summary>
+    /// <summary>Xem chi tiết dự án, tăng lượt xem. Quyền: Public.</summary>
     [HttpGet("{id:int}")]
     [ProducesResponseType(typeof(ProjectDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
-    public ActionResult<ProjectDetailDto> GetById(int id)
+    public async Task<ActionResult<ProjectDetailDto>> GetById(int id, CancellationToken ct)
     {
-        var project = Find(id);
-        return project is null ? NotFound(NotFoundError()) : Ok(project);
+        var result = await _projects.GetAsync(id, CurrentUserId, User.IsInRole("Admin"), ct);
+        return result.IsOk ? Ok(result.Value) : Fail(result);
     }
 
     /// <summary>Sửa dự án, body giống POST. Quyền: chủ dự án.</summary>
     [HttpPut("{id:int}")]
+    [Authorize(Roles = "Student")]
     [ProducesResponseType(typeof(ProjectDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
-    public ActionResult<ProjectDetailDto> Update(int id, [FromBody] ProjectUpsertRequest request)
+    public async Task<ActionResult<ProjectDetailDto>> Update(int id, [FromBody] ProjectUpsertRequest request, CancellationToken ct)
     {
-        var project = Find(id);
-        if (project is null) return NotFound(NotFoundError());
-        if (project.Owner.Id != MockProjectData.CurrentUserId) return StatusCode(403, ForbiddenError());
-        if (ValidateReferences(request) is { } error) return BadRequest(error);
+        if (CurrentUserId is not { } userId) return Unauthorized(NoUser());
 
-        var updated = MockProjectData.FromRequest(id, request, project.Owner, project);
-        MockProjectData.Replace(updated);
-        return Ok(updated);
+        var result = await _projects.UpdateAsync(id, userId, request, ct);
+        return result.IsOk ? Ok(result.Value) : Fail(result);
     }
 
     /// <summary>Xóa dự án. Quyền: chủ dự án hoặc Admin.</summary>
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Student,Admin")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
-    public IActionResult Delete(int id)
+    public async Task<IActionResult> Delete(int id, CancellationToken ct)
     {
-        var project = Find(id);
-        if (project is null) return NotFound(NotFoundError());
-        if (project.Owner.Id != MockProjectData.CurrentUserId) return StatusCode(403, ForbiddenError());
+        if (CurrentUserId is not { } userId) return Unauthorized(NoUser());
 
-        MockProjectData.Remove(id);
-        return NoContent();
+        var result = await _projects.DeleteAsync(id, userId, User.IsInRole("Admin"), ct);
+        return result.IsOk ? NoContent() : Fail(result);
     }
 
     /// <summary>Danh sách dự án của tôi, có phân trang (page, pageSize). Quyền: Student.</summary>
     [HttpGet("mine")]
+    [Authorize(Roles = "Student")]
     [ProducesResponseType(typeof(PagedResult<ProjectSummaryDto>), StatusCodes.Status200OK)]
-    public ActionResult<PagedResult<ProjectSummaryDto>> Mine([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    public async Task<ActionResult<PagedResult<ProjectSummaryDto>>> Mine(
+        [FromQuery] int page = 1, [FromQuery] int pageSize = 10, CancellationToken ct = default)
     {
-        page = Math.Max(1, page);
-        pageSize = Math.Clamp(pageSize, 1, 50);
-
-        var all = MockProjectData.Projects
-            .Where(p => p.Owner.Id == MockProjectData.CurrentUserId)
-            .OrderByDescending(p => p.CreatedAt)
-            .Select(MockProjectData.ToSummary)
-            .ToList();
-
-        var items = all.Skip((page - 1) * pageSize).Take(pageSize).ToList();
-        return Ok(new PagedResult<ProjectSummaryDto>(items, page, pageSize, all.Count));
+        if (CurrentUserId is not { } userId) return Unauthorized(NoUser());
+        return Ok(await _projects.GetMineAsync(userId, page, pageSize, ct));
     }
 
-    /// <summary>Tải thêm ảnh (multipart/form-data, trường "file"). Quyền: Student, chủ dự án. Chưa lưu file thật.</summary>
+    /// <summary>Tải thêm ảnh (multipart/form-data, trường "file"). Quyền: Student, chủ dự án.</summary>
     [HttpPost("{id:int}/images")]
+    [Authorize(Roles = "Student")]
     [Consumes("multipart/form-data")]
     [ProducesResponseType(typeof(ProjectImageDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
-    public ActionResult<ProjectImageDto> UploadImage(int id, IFormFile file)
+    public async Task<ActionResult<ProjectImageDto>> UploadImage(int id, IFormFile file, CancellationToken ct)
     {
-        var project = Find(id);
-        if (project is null) return NotFound(NotFoundError());
-        if (project.Owner.Id != MockProjectData.CurrentUserId) return StatusCode(403, ForbiddenError());
+        if (CurrentUserId is not { } userId) return Unauthorized(NoUser());
 
-        if (file is null || file.Length == 0)
-            return BadRequest(new ApiErrorResponse("Chưa chọn file ảnh", new() { ["file"] = new[] { "File là bắt buộc" } }));
-        if (file.Length > MaxImageBytes)
-            return BadRequest(new ApiErrorResponse("Ảnh quá lớn", new() { ["file"] = new[] { "Ảnh tối đa 5 MB" } }));
-        if (!AllowedImageTypes.Contains(file.ContentType))
-            return BadRequest(new ApiErrorResponse("Định dạng ảnh không hỗ trợ", new() { ["file"] = new[] { "Chỉ nhận JPEG, PNG, WebP" } }));
-
-        var imageId = MockProjectData.NextImageId();
-        var image = new ProjectImageDto(imageId, $"/uploads/mock/{id}-{imageId}.jpg");
-        var images = project.Images.Append(image).ToList();
-        MockProjectData.Replace(project with { Images = images, ThumbnailUrl = project.ThumbnailUrl ?? image.ImageUrl });
-        return StatusCode(StatusCodes.Status201Created, image);
+        var result = await _projects.AddImageAsync(id, userId, file, ct);
+        return result.IsOk ? StatusCode(StatusCodes.Status201Created, result.Value) : Fail(result);
     }
 
     /// <summary>Xóa một ảnh của dự án. Quyền: Student, chủ dự án.</summary>
     [HttpDelete("{id:int}/images/{imageId:int}")]
+    [Authorize(Roles = "Student")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
-    public IActionResult DeleteImage(int id, int imageId)
+    public async Task<IActionResult> DeleteImage(int id, int imageId, CancellationToken ct)
     {
-        var project = Find(id);
-        if (project is null) return NotFound(NotFoundError());
-        if (project.Owner.Id != MockProjectData.CurrentUserId) return StatusCode(403, ForbiddenError());
-        if (project.Images.All(i => i.Id != imageId))
-            return NotFound(new ApiErrorResponse("Không tìm thấy ảnh"));
+        if (CurrentUserId is not { } userId) return Unauthorized(NoUser());
 
-        var remaining = project.Images.Where(i => i.Id != imageId).ToList();
-        MockProjectData.Replace(project with { Images = remaining, ThumbnailUrl = remaining.FirstOrDefault()?.ImageUrl });
-        return NoContent();
+        var result = await _projects.DeleteImageAsync(id, imageId, userId, ct);
+        return result.IsOk ? NoContent() : Fail(result);
     }
 
-    // ---- helpers ----
-
-    private static ProjectDetailDto? Find(int id) => MockProjectData.Projects.FirstOrDefault(p => p.Id == id);
-
-    private static ApiErrorResponse NotFoundError() => new("Không tìm thấy dự án");
-
-    private static ApiErrorResponse ForbiddenError() => new("Bạn không có quyền thao tác dự án này");
-
-    /// <summary>Kiểm tra type, universityId và tagIds hợp lệ (bản thật sẽ hỏi DB cho phần id).</summary>
-    private static ApiErrorResponse? ValidateReferences(ProjectUpsertRequest r)
+    private ActionResult Fail<T>(ProjectResult<T> result) => result.Status switch
     {
-        var errors = new Dictionary<string, string[]>();
-
-        if (r.Type is { } type && !Enum.IsDefined(type))
-            errors["type"] = new[] { "Loại dự án không hợp lệ. Chỉ nhận: Web, Mobile, Game, AI, Other" };
-
-        if (r.UniversityId is { } uid && MockProjectData.Universities.All(u => u.Id != uid))
-            errors["universityId"] = new[] { "Trường không tồn tại" };
-
-        var badTags = r.TagIds.Where(t => MockProjectData.Tags.All(x => x.Id != t)).Distinct().ToList();
-        if (badTags.Count > 0)
-            errors["tagIds"] = new[] { $"Tag không tồn tại: {string.Join(", ", badTags)}" };
-
-        return errors.Count == 0 ? null : new ApiErrorResponse("Dữ liệu gửi lên không hợp lệ", errors);
-    }
+        ProjectResultStatus.NotFound => NotFound(result.Error),
+        ProjectResultStatus.Forbidden => StatusCode(StatusCodes.Status403Forbidden, result.Error),
+        ProjectResultStatus.Invalid => BadRequest(result.Error),
+        _ => StatusCode(StatusCodes.Status500InternalServerError, result.Error)
+    };
 }

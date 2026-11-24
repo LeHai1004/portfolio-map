@@ -100,6 +100,7 @@ builder.Services
     });
 
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IProjectsService, ProjectsService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddAuthorization();
 
@@ -167,6 +168,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseCors(CorsPolicy);
+app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
