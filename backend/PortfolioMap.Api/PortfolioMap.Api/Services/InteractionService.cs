@@ -17,9 +17,10 @@ public sealed class InteractionService : IInteractionService
     public async Task<InteractionResult<LikeStatusDto>> AddLikeAsync(
         int projectId,
         string userId,
+        bool isAdmin,
         CancellationToken ct = default)
     {
-        if (!await CanAccessProjectAsync(projectId, userId, ct))
+        if (!await CanAccessProjectAsync(projectId, userId, isAdmin, ct))
             return NotFound<LikeStatusDto>("Không tìm thấy dự án", "projectId");
 
         var existing = await _db.Likes
@@ -58,28 +59,28 @@ public sealed class InteractionService : IInteractionService
     public async Task<InteractionResult<bool>> RemoveLikeAsync(
         int projectId,
         string userId,
+        bool isAdmin,
         CancellationToken ct = default)
     {
-        if (!await CanAccessProjectAsync(projectId, userId, ct))
+        if (!await CanAccessProjectAsync(projectId, userId, isAdmin, ct))
             return NotFound<bool>("Không tìm thấy dự án", "projectId");
 
-        var like = await _db.Likes.FirstOrDefaultAsync(
-            item => item.UserId == userId && item.ProjectId == projectId,
-            ct);
-        if (like is null)
+        var deleted = await _db.Likes
+            .Where(item => item.UserId == userId && item.ProjectId == projectId)
+            .ExecuteDeleteAsync(ct);
+        if (deleted == 0)
             return NotFound<bool>("Bạn chưa thích dự án này", "projectId");
 
-        _db.Likes.Remove(like);
-        await _db.SaveChangesAsync(ct);
         return new InteractionResult<bool>(InteractionResultStatus.NoContent);
     }
 
     public async Task<InteractionResult<LikeStatusDto>> GetLikeStatusAsync(
         int projectId,
         string? userId,
+        bool isAdmin,
         CancellationToken ct = default)
     {
-        if (!await CanAccessProjectAsync(projectId, userId, ct))
+        if (!await CanAccessProjectAsync(projectId, userId, isAdmin, ct))
             return NotFound<LikeStatusDto>("Không tìm thấy dự án", "projectId");
 
         var count = await _db.Likes.CountAsync(item => item.ProjectId == projectId, ct);
@@ -96,11 +97,12 @@ public sealed class InteractionService : IInteractionService
     public async Task<InteractionResult<PagedResult<CommentDto>>> GetCommentsAsync(
         int projectId,
         string? userId,
+        bool isAdmin,
         int page,
         int pageSize,
         CancellationToken ct = default)
     {
-        if (!await CanAccessProjectAsync(projectId, userId, ct))
+        if (!await CanAccessProjectAsync(projectId, userId, isAdmin, ct))
             return NotFound<PagedResult<CommentDto>>("Không tìm thấy dự án", "projectId");
 
         page = Math.Max(1, page);
@@ -110,21 +112,25 @@ public sealed class InteractionService : IInteractionService
             .AsNoTracking()
             .Where(comment => comment.ProjectId == projectId);
         var totalItems = await query.CountAsync(ct);
+        var offset = (long)(page - 1) * pageSize;
 
-        var items = await query
-            .OrderByDescending(comment => comment.CreatedAt)
-            .ThenByDescending(comment => comment.Id)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(comment => new CommentDto(
-                comment.Id,
-                comment.Content,
-                comment.CreatedAt,
-                new OwnerDto(
-                    comment.User!.Id,
-                    comment.User.FullName,
-                    comment.User.AvatarUrl)))
-            .ToListAsync(ct);
+        var items = offset >= totalItems
+            ? new List<CommentDto>()
+            : await query
+                .OrderByDescending(comment => comment.CreatedAt)
+                .ThenByDescending(comment => comment.Id)
+                .Skip((int)offset)
+                .Take(pageSize)
+                .Select(comment => new CommentDto(
+                    comment.Id,
+                    comment.ProjectId,
+                    comment.Content,
+                    comment.CreatedAt,
+                    new OwnerDto(
+                        comment.User!.Id,
+                        comment.User.FullName,
+                        comment.User.AvatarUrl)))
+                .ToListAsync(ct);
 
         return new InteractionResult<PagedResult<CommentDto>>(
             InteractionResultStatus.Ok,
@@ -134,6 +140,7 @@ public sealed class InteractionService : IInteractionService
     public async Task<InteractionResult<CommentDto>> CreateCommentAsync(
         int projectId,
         string userId,
+        bool isAdmin,
         CreateCommentRequest request,
         CancellationToken ct = default)
     {
@@ -143,7 +150,7 @@ public sealed class InteractionService : IInteractionService
         if (content.Length > 1000)
             return BadRequest<CommentDto>("Nội dung bình luận tối đa 1000 ký tự", "content");
 
-        if (!await CanAccessProjectAsync(projectId, userId, ct))
+        if (!await CanAccessProjectAsync(projectId, userId, isAdmin, ct))
             return NotFound<CommentDto>("Không tìm thấy dự án", "projectId");
 
         var comment = new Comment
@@ -161,6 +168,7 @@ public sealed class InteractionService : IInteractionService
             .Where(item => item.Id == comment.Id)
             .Select(item => new CommentDto(
                 item.Id,
+                item.ProjectId,
                 item.Content,
                 item.CreatedAt,
                 new OwnerDto(
@@ -177,21 +185,29 @@ public sealed class InteractionService : IInteractionService
         string userId,
         CancellationToken ct = default)
     {
-        var comment = await _db.Comments
-            .FirstOrDefaultAsync(item => item.Id == commentId, ct);
-        if (comment is null)
+        var commentOwnerId = await _db.Comments
+            .AsNoTracking()
+            .Where(item => item.Id == commentId)
+            .Select(item => item.UserId)
+            .FirstOrDefaultAsync(ct);
+        if (commentOwnerId is null)
             return NotFound<bool>("Không tìm thấy bình luận", "id");
-        if (comment.UserId != userId)
+        if (commentOwnerId != userId)
             return Forbidden<bool>("Bạn không có quyền xóa bình luận này", "id");
 
-        _db.Comments.Remove(comment);
-        await _db.SaveChangesAsync(ct);
+        var deleted = await _db.Comments
+            .Where(item => item.Id == commentId && item.UserId == userId)
+            .ExecuteDeleteAsync(ct);
+        if (deleted == 0)
+            return NotFound<bool>("Không tìm thấy bình luận", "id");
+
         return new InteractionResult<bool>(InteractionResultStatus.NoContent);
     }
 
     private async Task<bool> CanAccessProjectAsync(
         int projectId,
         string? userId,
+        bool isAdmin,
         CancellationToken ct)
     {
         var project = await _db.Projects
@@ -202,6 +218,7 @@ public sealed class InteractionService : IInteractionService
 
         return project is not null &&
             (!string.Equals(project.Status, "Hidden", StringComparison.OrdinalIgnoreCase) ||
+             isAdmin ||
              project.OwnerId == userId);
     }
 

@@ -18,6 +18,7 @@ public sealed class InteractionController : ControllerBase
         _interaction = interaction;
 
     private string? CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier);
+    private bool IsAdmin => User.IsInRole("Admin");
 
     [HttpPost("projects/{id:int}/like")]
     [Authorize]
@@ -30,7 +31,7 @@ public sealed class InteractionController : ControllerBase
         if (CurrentUserId is not { } userId)
             return Unauthorized(new ApiErrorResponse("Chưa đăng nhập hoặc token sai"));
 
-        return Respond(await _interaction.AddLikeAsync(id, userId, ct));
+        return Respond(await _interaction.AddLikeAsync(id, userId, IsAdmin, ct));
     }
 
     [HttpDelete("projects/{id:int}/like")]
@@ -43,7 +44,7 @@ public sealed class InteractionController : ControllerBase
         if (CurrentUserId is not { } userId)
             return Unauthorized(new ApiErrorResponse("Chưa đăng nhập hoặc token sai"));
 
-        return Respond(await _interaction.RemoveLikeAsync(id, userId, ct));
+        return Respond(await _interaction.RemoveLikeAsync(id, userId, IsAdmin, ct));
     }
 
     [HttpGet("projects/{id:int}/like")]
@@ -51,7 +52,7 @@ public sealed class InteractionController : ControllerBase
     [ProducesResponseType(typeof(LikeStatusDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<LikeStatusDto>> GetLikeStatus(int id, CancellationToken ct) =>
-        Respond(await _interaction.GetLikeStatusAsync(id, CurrentUserId, ct));
+        Respond(await _interaction.GetLikeStatusAsync(id, CurrentUserId, IsAdmin, ct));
 
     [HttpGet("projects/{id:int}/comments")]
     [AllowAnonymous]
@@ -62,7 +63,8 @@ public sealed class InteractionController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
         CancellationToken ct = default) =>
-        Respond(await _interaction.GetCommentsAsync(id, CurrentUserId, page, pageSize, ct));
+        Respond(await _interaction.GetCommentsAsync(
+            id, CurrentUserId, IsAdmin, page, pageSize, ct));
 
     [HttpPost("projects/{id:int}/comments")]
     [Authorize]
@@ -78,7 +80,8 @@ public sealed class InteractionController : ControllerBase
         if (CurrentUserId is not { } userId)
             return Unauthorized(new ApiErrorResponse("Chưa đăng nhập hoặc token sai"));
 
-        return Respond(await _interaction.CreateCommentAsync(id, userId, request, ct));
+        return Respond(await _interaction.CreateCommentAsync(
+            id, userId, IsAdmin, request, ct));
     }
 
     [HttpDelete("comments/{id:int}")]
