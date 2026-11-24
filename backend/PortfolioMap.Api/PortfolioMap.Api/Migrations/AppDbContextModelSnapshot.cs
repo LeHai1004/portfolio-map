@@ -18,7 +18,7 @@ namespace PortfolioMap.Api.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.12")
+                .HasAnnotation("ProductVersion", "10.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -237,6 +237,38 @@ namespace PortfolioMap.Api.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("PortfolioMap.Api.Models.Comment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("ProjectId", "CreatedAt");
+
+                    b.ToTable("Comments");
+                });
+
             modelBuilder.Entity("PortfolioMap.Api.Models.CompanyProfile", b =>
                 {
                     b.Property<string>("UserId")
@@ -311,6 +343,24 @@ namespace PortfolioMap.Api.Migrations
                     b.HasIndex("ToUserId");
 
                     b.ToTable("ContactMessages");
+                });
+
+            modelBuilder.Entity("PortfolioMap.Api.Models.Like", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("UserId", "ProjectId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.ToTable("Likes");
                 });
 
             modelBuilder.Entity("PortfolioMap.Api.Models.Project", b =>
@@ -568,6 +618,25 @@ namespace PortfolioMap.Api.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("PortfolioMap.Api.Models.Comment", b =>
+                {
+                    b.HasOne("PortfolioMap.Api.Models.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PortfolioMap.Api.Models.AppUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Project");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("PortfolioMap.Api.Models.CompanyProfile", b =>
                 {
                     b.HasOne("PortfolioMap.Api.Models.AppUser", "User")
@@ -603,6 +672,25 @@ namespace PortfolioMap.Api.Migrations
                     b.Navigation("Project");
 
                     b.Navigation("ToUser");
+                });
+
+            modelBuilder.Entity("PortfolioMap.Api.Models.Like", b =>
+                {
+                    b.HasOne("PortfolioMap.Api.Models.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PortfolioMap.Api.Models.AppUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Project");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("PortfolioMap.Api.Models.Project", b =>
@@ -679,7 +767,7 @@ namespace PortfolioMap.Api.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("PortfolioMap.Api.Models.AppUser", "User")
-                        .WithOne()
+                        .WithOne("StudentProfile")
                         .HasForeignKey("PortfolioMap.Api.Models.StudentProfile", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -687,6 +775,11 @@ namespace PortfolioMap.Api.Migrations
                     b.Navigation("University");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("PortfolioMap.Api.Models.AppUser", b =>
+                {
+                    b.Navigation("StudentProfile");
                 });
 
             modelBuilder.Entity("PortfolioMap.Api.Models.Project", b =>

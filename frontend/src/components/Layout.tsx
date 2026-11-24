@@ -207,6 +207,18 @@ export default function Layout() {
                   </Button>
                 </>
               )}
+              {user.role.toLowerCase() === "admin" && (
+                <Button
+                  variant="text"
+                  color="inherit"
+                  component={Link}
+                  to="/admin"
+                  aria-current={isActive("/admin") ? "page" : undefined}
+                  sx={menuButtonSx(isActive("/admin"))}
+                >
+                  Quản trị
+                </Button>
+              )}
               <Box
                 sx={{
                   display: "flex",

@@ -9,8 +9,8 @@ namespace PortfolioMap.Api.Dtos.Contacts
         public string FromName { get; set; } = string.Empty;
         public string ToUserId { get; set; } = string.Empty;
         public string ToName { get; set; } = string.Empty;
-        public int ProjectId { get; set; }
-        public string ProjectTitle { get; set; } = string.Empty;
+        public int? ProjectId { get; set; }
+        public string? ProjectTitle { get; set; }
         public string Subject { get; set; } = string.Empty;
         public string Content { get; set; } = string.Empty;
         public bool IsRead { get; set; }

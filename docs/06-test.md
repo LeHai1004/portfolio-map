@@ -20,3 +20,31 @@ Cách thử: Scalar tại `/scalar/v1` hoặc giao diện web.
 | T-14 | Đổi mật khẩu              | Có token, PUT `/api/users/me/password` với dữ liệu hợp lệ | 200, đăng nhập được bằng mật khẩu mới                          | Chưa chạy: cần SQL Server, JWT và API                     |
 | T-15 | Tải ảnh đại diện          | Có token, POST `/api/users/me/avatar` với JPEG/PNG hợp lệ | 200, trả URL và ảnh được lưu, truy cập được                    | Chưa chạy: cần SQL Server, JWT và API                     |
 | T-16 | Tải file không phải ảnh   | Có token, upload file sai đuôi hoặc chữ ký ảnh            | 400, `{ message, errors }`                                     | Chưa chạy: cần JWT và API                                 |
+
+## T-17: Hiệu năng API ghim bản đồ
+
+Điều kiện: đã có script seed 300 ghim của Sơn, API chạy bằng SQL Server thực và dữ liệu Project có trạng thái Active.
+
+Các trường hợp đo `GET /api/map/pins`:
+
+| Trường hợp | Khung | Gọi thử | Thời gian trung bình | Thời gian lớn nhất | Kết quả |
+| --- | --- | --- | --- | --- | --- |
+| T-17A | Một khu vực nhỏ | 5 lần | Chưa đo | Chưa đo | Chờ seed S1-10 |
+| T-17B | Toàn Đà Nẵng | 5 lần | Chưa đo | Chưa đo | Chờ seed S1-10 |
+| T-17C | Khung rất lớn | 5 lần | Chưa đo | Chưa đo | Chờ seed S1-10 |
+
+Ghi nhận thời gian từ lúc gửi request tới khi nhận đủ response. Mục tiêu thời gian trung bình và thời gian lớn nhất đều dưới 500 ms. Nếu vượt 500 ms, báo Hải để xem xét index thay vì tự thêm index/schema trong thẻ này.
+
+## T-18: Giới hạn và cấu trúc dữ liệu ghim
+
+| Thử nghiệm | Các bước | Kết quả mong đợi | Kết quả thật |
+| --- | --- | --- | --- |
+| T-18A | Gọi khung chứa trên 500 dự án Active | Response không vượt 500 phần tử | Chưa chạy: cần dữ liệu lớn |
+| T-18B | Kiểm tra từng object trong response | Chỉ có `id`, `title`, `lat`, `lng`, `type`, `thumbnailUrl` | Chưa chạy: cần API/database |
+
+## T-19: Trải nghiệm bản đồ với 300 ghim
+
+| Thử nghiệm | Các bước | Kết quả mong đợi | Kết quả thật |
+| --- | --- | --- | --- |
+| T-19A | Kéo bản đồ, zoom với 300 ghim | Không có hiện tượng giật đáng kể; ghim cập nhật theo khung | Chưa chạy: cần seed và giao diện |
+| T-19B | Chụp màn hình sau khi kéo/zoom | Gửi ảnh minh họa cho Hải | Chưa có ảnh |

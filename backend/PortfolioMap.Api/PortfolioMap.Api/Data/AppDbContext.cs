@@ -18,6 +18,8 @@ public class AppDbContext : IdentityDbContext<AppUser>
     public DbSet<StudentProfile> StudentProfiles => Set<StudentProfile>();
     public DbSet<CompanyProfile> CompanyProfiles => Set<CompanyProfile>();
     public DbSet<SavedProject> SavedProjects => Set<SavedProject>();
+    public DbSet<Like> Likes => Set<Like>();
+    public DbSet<Comment> Comments => Set<Comment>();
     public DbSet<ContactMessage> ContactMessages => Set<ContactMessage>();
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -74,6 +76,29 @@ public class AppDbContext : IdentityDbContext<AppUser>
             e.HasOne(sp => sp.Project).WithMany()
                 .HasForeignKey(sp => sp.ProjectId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<Like>(e =>
+        {
+            e.HasKey(l => new { l.UserId, l.ProjectId });
+            e.HasOne(l => l.User).WithMany()
+                .HasForeignKey(l => l.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(l => l.Project).WithMany()
+                .HasForeignKey(l => l.ProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<Comment>(e =>
+        {
+            e.Property(c => c.Content).HasMaxLength(1000).IsRequired();
+            e.HasOne(c => c.User).WithMany()
+                .HasForeignKey(c => c.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(c => c.Project).WithMany()
+                .HasForeignKey(c => c.ProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(c => new { c.ProjectId, c.CreatedAt });
         });
 
         builder.Entity<ContactMessage>(e =>
