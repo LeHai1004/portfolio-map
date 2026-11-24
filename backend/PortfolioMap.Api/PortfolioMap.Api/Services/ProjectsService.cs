@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.Extensions.Logging;
 using NetTopologySuite.Geometries;
 using PortfolioMap.Api.Data;
 using PortfolioMap.Api.Dtos.Common;
@@ -28,11 +29,13 @@ public class ProjectsService : IProjectsService
 
     private readonly AppDbContext _db;
     private readonly IWebHostEnvironment _env;
+    private readonly ILogger<ProjectsService> _logger;
 
-    public ProjectsService(AppDbContext db, IWebHostEnvironment env)
+    public ProjectsService(AppDbContext db, IWebHostEnvironment env, ILogger<ProjectsService> logger)
     {
         _db = db;
         _env = env;
+        _logger = logger;
     }
 
     // ---------- Tạo ----------
@@ -77,8 +80,18 @@ public class ProjectsService : IProjectsService
 
     // ---------- Xem chi tiết ----------
 
-    public async Task<ProjectResult<ProjectDetailDto>> GetAsync(int id, CancellationToken ct = default)
+    public async Task<ProjectResult<ProjectDetailDto>> GetAsync(int id, string? userId, bool isAdmin, CancellationToken ct = default)
     {
+        var project = await _db.Set<Project>().FirstOrDefaultAsync(p => p.Id == id, ct);
+        if (project is null) return ProjectResult<ProjectDetailDto>.NotFound("Không tìm thấy dự án");
+
+        var status = _db.Entry(project).Property("Status").CurrentValue?.ToString();
+        if (string.Equals(status, "Hidden", StringComparison.OrdinalIgnoreCase)
+            && !isAdmin && project.OwnerId != userId)
+        {
+            return ProjectResult<ProjectDetailDto>.NotFound("Không tìm thấy dự án");
+        }
+
         // Tăng lượt xem bằng một lệnh UPDATE nguyên tử, tránh mất lượt khi nhiều người xem cùng lúc.
         var touched = await _db.Set<Project>()
             .Where(p => p.Id == id)
@@ -259,7 +272,14 @@ public class ProjectsService : IProjectsService
 
         // GetFileName chặn đường dẫn lạ như ../ trong ImageUrl.
         var file = Path.Combine(ProjectDir(projectId), Path.GetFileName(image.ImageUrl));
-        try { if (File.Exists(file)) File.Delete(file); } catch { /* dọn file là cố gắng tối đa, DB đã đúng */ }
+        try
+        {
+            if (File.Exists(file)) File.Delete(file);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to delete project image file {FilePath}", file);
+        }
 
         return ProjectResult<bool>.Ok(true);
     }
@@ -369,12 +389,15 @@ public class ProjectsService : IProjectsService
 
     private void DeleteProjectFolder(int projectId)
     {
+        var dir = ProjectDir(projectId);
         try
         {
-            var dir = ProjectDir(projectId);
             if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true);
         }
-        catch { /* dọn file là cố gắng tối đa, DB đã đúng */ }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to delete project image directory {DirectoryPath}", dir);
+        }
     }
 
     private static ProjectResult<ProjectImageDto> Bad(string message, string fileError) =>

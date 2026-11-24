@@ -44,7 +44,7 @@ public class ProjectsController : ControllerBase
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ProjectDetailDto>> GetById(int id, CancellationToken ct)
     {
-        var result = await _projects.GetAsync(id, ct);
+        var result = await _projects.GetAsync(id, CurrentUserId, User.IsInRole("Admin"), ct);
         return result.IsOk ? Ok(result.Value) : Fail(result);
     }
 

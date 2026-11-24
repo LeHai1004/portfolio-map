@@ -9,7 +9,7 @@ public interface IProjectsService
     Task<ProjectResult<ProjectDetailDto>> CreateAsync(string userId, ProjectUpsertRequest request, CancellationToken ct = default);
 
     /// <summary>Xem chi tiết và tăng ViewCount.</summary>
-    Task<ProjectResult<ProjectDetailDto>> GetAsync(int id, CancellationToken ct = default);
+    Task<ProjectResult<ProjectDetailDto>> GetAsync(int id, string? userId, bool isAdmin, CancellationToken ct = default);
 
     Task<ProjectResult<ProjectDetailDto>> UpdateAsync(int id, string userId, ProjectUpsertRequest request, CancellationToken ct = default);
 
