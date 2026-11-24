@@ -47,6 +47,15 @@ public class MapController : ControllerBase
         if (errors.Count > 0)
             return BadRequest(new ApiErrorResponse("Thiếu tham số khung bản đồ", errors));
 
+        if (double.IsNaN(minLat.Value) || minLat.Value < -90 || minLat.Value > 90)
+            errors["minLat"] = new[] { "minLat phải từ -90 đến 90" };
+        if (double.IsNaN(maxLat.Value) || maxLat.Value < -90 || maxLat.Value > 90)
+            errors["maxLat"] = new[] { "maxLat phải từ -90 đến 90" };
+        if (double.IsNaN(minLng.Value) || minLng.Value < -180 || minLng.Value > 180)
+            errors["minLng"] = new[] { "minLng phải từ -180 đến 180" };
+        if (double.IsNaN(maxLng.Value) || maxLng.Value < -180 || maxLng.Value > 180)
+            errors["maxLng"] = new[] { "maxLng phải từ -180 đến 180" };
+
         if (minLat > maxLat) errors["minLat"] = new[] { "minLat không được lớn hơn maxLat" };
         if (minLng > maxLng) errors["minLng"] = new[] { "minLng không được lớn hơn maxLng" };
 
