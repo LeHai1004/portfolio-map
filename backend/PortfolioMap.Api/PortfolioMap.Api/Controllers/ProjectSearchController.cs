@@ -2,7 +2,6 @@
 using PortfolioMap.Api.Dtos.Common;
 using PortfolioMap.Api.Dtos.Projects;
 using PortfolioMap.Api.Dtos.Search;
-using PortfolioMap.Api.Mock;
 using PortfolioMap.Api.Services;
 
 namespace PortfolioMap.Api.Controllers;
@@ -52,12 +51,15 @@ public class ProjectSearchController : ControllerBase
         return Ok(results);
     }
 
-    /// <summary>Tìm dự án trong bán kính, gần đến xa, tối đa 100 (dữ liệu mẫu).</summary>
+    /// <summary>Tìm dự án trong bán kính, gần đến xa, tối đa 100.</summary>
     [HttpGet("nearby")]
     [ProducesResponseType(typeof(IReadOnlyList<NearbyProjectDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public ActionResult<IReadOnlyList<NearbyProjectDto>> Nearby(
-        [FromQuery] double? lat, [FromQuery] double? lng, [FromQuery] double radiusKm = 5)
+    public async Task<ActionResult<IReadOnlyList<NearbyProjectDto>>> Nearby(
+        [FromQuery] double? lat,
+        [FromQuery] double? lng,
+        [FromQuery] double radiusKm = 5,
+        CancellationToken cancellationToken = default)
     {
         var errors = new Dictionary<string, string[]>();
 
@@ -74,7 +76,9 @@ public class ProjectSearchController : ControllerBase
 
         if (errors.Count > 0) return BadRequest(ErrorBody(errors));
 
-        return Ok(MockNearbyData.Nearby(lat!.Value, lng!.Value, radiusKm));
+        var results = await _search.GetNearbyAsync(
+            lat!.Value, lng!.Value, radiusKm, cancellationToken);
+        return Ok(results);
     }
 
     private static object ErrorBody(Dictionary<string, string[]> errors) => new

@@ -11,4 +11,10 @@ public interface IProjectSearchService
         ProjectType? type,
         bool sortByViews,
         CancellationToken ct = default);
+
+    Task<IReadOnlyList<NearbyProjectDto>> GetNearbyAsync(
+        double lat,
+        double lng,
+        double radiusKm,
+        CancellationToken ct = default);
 }
