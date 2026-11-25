@@ -14,19 +14,32 @@ import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import { useQuery } from "@tanstack/react-query";
-import { Alert, Box, Fab, SvgIcon } from "@mui/material";
+import {
+  Alert,
+  Box,
+  Button,
+  Fab,
+  Fade,
+  Paper,
+  Skeleton,
+  Slide,
+  SvgIcon,
+} from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import {
   getMapPins,
   type MapBounds,
   type MapPin,
 } from "../../api/mapApi";
+import {
+  searchProjects,
+  type ProjectSearchFilters,
+} from "../../api/searchApi";
 import { getUniversities } from "../../api/universitiesApi";
 import { getTags } from "../../api/tagsApi";
 import ProjectQuickViewPanel from "./ProjectQuickViewPanel";
-import ProjectSearchBar, {
-  type ProjectSearchFilters,
-} from "../search/ProjectSearchBar";
+import ProjectSearchBar from "../search/ProjectSearchBar";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
@@ -111,6 +124,9 @@ function LocateIcon() {
 
 export default function MapView() {
   const theme = useTheme();
+  const prefersReducedMotion = useMediaQuery(
+    "(prefers-reduced-motion: reduce)",
+  );
   const mapRef = useRef<LeafletMap | null>(null);
   const isMapInteractingRef = useRef(false);
   const [viewBounds, setViewBounds] = useState<MapBounds | null>(null);
@@ -122,12 +138,20 @@ export default function MapView() {
   );
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
-  const [, setSearchFilters] = useState<ProjectSearchFilters>({
+  const [searchFilters, setSearchFilters] = useState<ProjectSearchFilters>({
     keyword: "",
     types: [],
     tagIds: [],
     universityId: null,
   });
+  const hasSearchFilters =
+    searchFilters.keyword.trim().length > 0 ||
+    searchFilters.types.length > 0 ||
+    searchFilters.tagIds.length > 0 ||
+    searchFilters.universityId !== null;
+  const hasProjectSearchFilters =
+    searchFilters.keyword.trim().length > 0 ||
+    searchFilters.universityId !== null;
   useEffect(() => {
     if (!viewBounds) {
       return;
@@ -139,17 +163,50 @@ export default function MapView() {
 
     return () => window.clearTimeout(timeoutId);
   }, [viewBounds]);
-  const { data: pins = [] } = useQuery({
-    queryKey: ["map-pins", debouncedBounds],
-    queryFn: () => {
+  const pinsQuery = useQuery({
+    queryKey: [
+      "map-results",
+      hasProjectSearchFilters
+        ? "search"
+        : hasSearchFilters
+          ? "filtered-pins"
+          : "viewport-pins",
+      hasProjectSearchFilters
+        ? searchFilters
+        : [debouncedBounds, searchFilters.types, searchFilters.tagIds],
+    ],
+    queryFn: async () => {
+      if (hasProjectSearchFilters) {
+        const results = await searchProjects(searchFilters, 1);
+        return results.items.map((project): MapPin => ({
+          id: project.id,
+          title: project.title,
+          lat: project.latitude,
+          lng: project.longitude,
+          type: project.type,
+          thumbnailUrl: project.thumbnailUrl,
+        }));
+      }
+
       if (!debouncedBounds) {
         throw new Error("Không thể tải ghim khi chưa xác định khung bản đồ.");
       }
-      return getMapPins(debouncedBounds);
+      return getMapPins(debouncedBounds, {
+        types: searchFilters.types,
+        tagIds: searchFilters.tagIds,
+      });
     },
-    enabled: debouncedBounds !== null,
-    placeholderData: (previousPins) => previousPins,
+    enabled: hasProjectSearchFilters || debouncedBounds !== null,
+    placeholderData: hasSearchFilters
+      ? undefined
+      : (previousPins, previousQuery) =>
+          previousQuery?.queryKey[1] === "viewport-pins"
+            ? previousPins
+            : undefined,
   });
+  const pins = pinsQuery.data ?? [];
+  const statusDuration =
+    isMapInteracting || prefersReducedMotion ? 0 : 250;
   const universitiesQuery = useQuery({
     queryKey: ["universities"],
     queryFn: getUniversities,
@@ -266,6 +323,91 @@ export default function MapView() {
           />
         )}
       </MapContainer>
+      <Box
+        sx={{
+          position: "absolute",
+          bottom: 24,
+          left: "50%",
+          zIndex: theme.zIndex.fab,
+          width: {
+            xs: "calc(100% - 32px)",
+            sm: "min(440px, calc(100% - 48px))",
+          },
+          transform: "translateX(-50%)",
+          pointerEvents: "none",
+        }}
+      >
+        <Fade
+          in={
+            pinsQuery.isPending ||
+            pinsQuery.isError ||
+            (pinsQuery.isSuccess && pins.length === 0)
+          }
+          timeout={statusDuration}
+          mountOnEnter
+          unmountOnExit
+        >
+          <Slide
+            in={
+              pinsQuery.isPending ||
+              pinsQuery.isError ||
+              (pinsQuery.isSuccess && pins.length === 0)
+            }
+            direction="up"
+            timeout={statusDuration}
+            mountOnEnter
+            unmountOnExit
+          >
+            <Box sx={{ pointerEvents: "auto" }}>
+              {pinsQuery.isPending ? (
+                <Paper
+                  role="status"
+                  aria-label="Đang tải dự án"
+                  sx={{ p: 2, borderRadius: 2 }}
+                >
+                  <Skeleton
+                    animation={
+                      isMapInteracting || prefersReducedMotion
+                        ? false
+                        : "pulse"
+                    }
+                    width="70%"
+                  />
+                  <Skeleton
+                    animation={
+                      isMapInteracting || prefersReducedMotion
+                        ? false
+                        : "pulse"
+                    }
+                    width="45%"
+                  />
+                </Paper>
+              ) : pinsQuery.isError ? (
+                <Alert
+                  severity="error"
+                  action={
+                    <Button
+                      color="inherit"
+                      size="small"
+                      onClick={() => void pinsQuery.refetch()}
+                    >
+                      Thử lại
+                    </Button>
+                  }
+                >
+                  Không tải được dự án. Vui lòng thử lại.
+                </Alert>
+              ) : (
+                <Alert severity="info">
+                  {hasSearchFilters
+                    ? "Không có dự án phù hợp."
+                    : "Không có ghim trong khu vực bản đồ này."}
+                </Alert>
+              )}
+            </Box>
+          </Slide>
+        </Fade>
+      </Box>
       <Fab
         aria-label="Về vị trí của tôi"
         color="primary"

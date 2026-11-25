@@ -19,17 +19,12 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import type { ProjectType } from "../../api/projectsApi";
+import type { ProjectSearchFilters } from "../../api/searchApi";
 import type { TagDto } from "../../api/tagsApi";
 import type { UniversityDto } from "../../api/universitiesApi";
 
-export type ProjectSearchFilters = {
-  keyword: string;
-  types: string[];
-  tagIds: number[];
-  universityId: number | null;
-};
-
-const projectTypes = ["Web", "Mobile", "Game", "AI", "Other"] as const;
+const projectTypes: ProjectType[] = ["Web", "Mobile", "Game", "AI", "Other"];
 const typeLabels: Record<(typeof projectTypes)[number], string> = {
   Web: "Web",
   Mobile: "Mobile",
@@ -54,7 +49,7 @@ export default function ProjectSearchBar({
     "(prefers-reduced-motion: reduce)",
   );
   const [keyword, setKeyword] = useState("");
-  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [selectedTypes, setSelectedTypes] = useState<ProjectType[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
   const [selectedUniversityId, setSelectedUniversityId] = useState<
     number | null
@@ -91,7 +86,7 @@ export default function ProjectSearchBar({
     setIsFilterOpen(false);
   };
 
-  const toggleType = (type: string) => {
+  const toggleType = (type: ProjectType) => {
     setSelectedTypes((current) =>
       current.includes(type)
         ? current.filter((value) => value !== type)
