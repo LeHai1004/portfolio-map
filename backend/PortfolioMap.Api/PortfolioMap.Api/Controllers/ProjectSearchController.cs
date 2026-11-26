@@ -3,6 +3,7 @@ using PortfolioMap.Api.Dtos.Common;
 using PortfolioMap.Api.Dtos.Projects;
 using PortfolioMap.Api.Dtos.Search;
 using PortfolioMap.Api.Mock;
+using PortfolioMap.Api.Services;
 
 namespace PortfolioMap.Api.Controllers;
 
@@ -11,12 +12,17 @@ namespace PortfolioMap.Api.Controllers;
 public class ProjectSearchController : ControllerBase
 {
     private const string InvalidTypeMessage = "Loại dự án không hợp lệ. Chỉ nhận: Web, Mobile, Game, AI, Other";
+    private readonly IProjectSearchService _search;
 
-    /// <summary>Tìm và lọc dự án (dữ liệu mẫu).</summary>
+    public ProjectSearchController(IProjectSearchService search) => _search = search;
+
+    /// <summary>Tìm và lọc dự án.</summary>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<ProjectSummaryDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public ActionResult<PagedResult<ProjectSummaryDto>> Search([FromQuery] ProjectSearchQuery query)
+    public async Task<ActionResult<PagedResult<ProjectSummaryDto>>> Search(
+        [FromQuery] ProjectSearchQuery query,
+        CancellationToken cancellationToken)
     {
         var errors = new Dictionary<string, string[]>();
 
@@ -41,10 +47,9 @@ public class ProjectSearchController : ControllerBase
 
         if (errors.Count > 0) return BadRequest(ErrorBody(errors));
 
-        var (items, total) = MockSearchData.Search(
-            query.Keyword, query.Tag, type, query.UniversityId, sort == "views", query.Page, query.PageSize);
-
-        return Ok(new PagedResult<ProjectSummaryDto>(items, query.Page, query.PageSize, total));
+        var results = await _search.SearchAsync(
+            query, type, sort == "views", cancellationToken);
+        return Ok(results);
     }
 
     /// <summary>Tìm dự án trong bán kính, gần đến xa, tối đa 100 (dữ liệu mẫu).</summary>
@@ -69,7 +74,7 @@ public class ProjectSearchController : ControllerBase
 
         if (errors.Count > 0) return BadRequest(ErrorBody(errors));
 
-        return Ok(MockSearchData.Nearby(lat!.Value, lng!.Value, radiusKm));
+        return Ok(MockNearbyData.Nearby(lat!.Value, lng!.Value, radiusKm));
     }
 
     private static object ErrorBody(Dictionary<string, string[]> errors) => new
