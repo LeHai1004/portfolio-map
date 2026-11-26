@@ -109,6 +109,8 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IMapService, MapService>();
 builder.Services.AddScoped<IProjectSearchService, ProjectSearchService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
+builder.Services.AddHttpClient<IAiChatService, AiChatService>(client =>
+    client.Timeout = TimeSpan.FromSeconds(20));
 builder.Services.AddAuthorization();
 
 // 2. CORS: cho phép giao diện React (cổng 5173) gọi API
