@@ -206,6 +206,17 @@ namespace PortfolioMap.Api.Services
                 };
             }
 
+            if (user.IsLocked)
+            {
+                return new ServiceResult<UserDto>
+                {
+                    Success = false,
+                    StatusCode = 403,
+                    Message = "Tài khoản bị khóa",
+                    Errors = new { }
+                };
+            }
+
             var roles = await _userManager.GetRolesAsync(user);
             if (roles.Count != 1 || !IsSupportedRole(roles[0]))
             {
