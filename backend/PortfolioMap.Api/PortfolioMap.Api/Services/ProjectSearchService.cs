@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using NetTopologySuite.Geometries;
 using PortfolioMap.Api.Data;
 using PortfolioMap.Api.Dtos.Common;
 using PortfolioMap.Api.Dtos.Projects;
@@ -8,6 +9,7 @@ namespace PortfolioMap.Api.Services;
 
 public sealed class ProjectSearchService : IProjectSearchService
 {
+    private const int MaxNearbyProjects = 100;
     private readonly AppDbContext _db;
 
     public ProjectSearchService(AppDbContext db) => _db = db;
@@ -76,5 +78,44 @@ public sealed class ProjectSearchService : IProjectSearchService
             query.Page,
             query.PageSize,
             totalItems);
+    }
+
+    public async Task<IReadOnlyList<NearbyProjectDto>> GetNearbyAsync(
+        double lat,
+        double lng,
+        double radiusKm,
+        CancellationToken ct = default)
+    {
+        var point = new Point(lng, lat) { SRID = 4326 };
+        var maxDistanceMeters = radiusKm * 1000;
+
+        return await _db.Projects
+            .AsNoTracking()
+            .Where(project => project.Status == "Active")
+            .Select(project => new
+            {
+                project.Id,
+                project.Title,
+                project.Type,
+                project.ThumbnailUrl,
+                project.Latitude,
+                project.Longitude,
+                project.CreatedAt,
+                DistanceMeters = project.Location.Distance(point),
+            })
+            .Where(project => project.DistanceMeters <= maxDistanceMeters)
+            .OrderBy(project => project.DistanceMeters)
+            .ThenBy(project => project.Id)
+            .Take(MaxNearbyProjects)
+            .Select(project => new NearbyProjectDto(
+                project.Id,
+                project.Title,
+                Enum.Parse<ProjectType>(project.Type, ignoreCase: true),
+                project.ThumbnailUrl,
+                project.Latitude,
+                project.Longitude,
+                project.CreatedAt,
+                Math.Round(project.DistanceMeters / 1000, 2)))
+            .ToListAsync(ct);
     }
 }
