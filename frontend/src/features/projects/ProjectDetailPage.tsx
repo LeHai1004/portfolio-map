@@ -18,6 +18,8 @@ import { Link as RouterLink, useParams } from "react-router-dom";
 import { removeSavedProject, saveProject } from "../../api/savedProjectsApi";
 import { getProjectById, type ProjectType } from "../../api/projectsApi";
 import ContactStudentDialog from "../company/ContactStudentDialog";
+import CommentSection from "../interaction/CommentSection";
+import LikeButton from "../interaction/LikeButton";
 
 type IconName =
   | "project"
@@ -291,6 +293,8 @@ export default function ProjectDetailPage() {
             {project.title}
           </Typography>
 
+          <LikeButton projectId={project.id} />
+
           {project.description && (
             <Typography
               className="project-detail-section"
@@ -419,6 +423,7 @@ export default function ProjectDetailPage() {
           </Box>
         </Stack>
       </Paper>
+      <CommentSection projectId={project.id} />
       <ContactStudentDialog
         open={contactDialogOpen}
         projectId={project.id}
