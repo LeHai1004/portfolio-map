@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keyframes } from "@mui/material/styles";
 import {
   Alert,
   Box,
@@ -36,6 +37,16 @@ import {
 } from "../../api/adminApi";
 
 const PAGE_SIZE_OPTIONS = [5, 10, 25];
+const fadeIn = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+`;
 
 type Confirmation =
   | { kind: "project"; item: AdminProjectDto }
@@ -154,7 +165,16 @@ export default function AdminPage() {
   };
 
   return (
-    <Container maxWidth="lg" sx={{ py: { xs: 3, sm: 5 } }}>
+    <Container
+      maxWidth="lg"
+      sx={{
+        py: { xs: 3, sm: 5 },
+        animation: `${fadeIn} 200ms ease-out`,
+        "@media (prefers-reduced-motion: reduce)": {
+          animation: "none",
+        },
+      }}
+    >
       <Stack spacing={3}>
         <Box>
           <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>

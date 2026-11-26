@@ -11,6 +11,7 @@ import LoginPage from "./features/auth/LoginPage";
 import ProtectedRoute from "./features/auth/ProtectedRoute";
 import RegisterPage from "./features/auth/RegisterPage";
 import ProfilePage from "./features/auth/ProfilePage";
+import AdminPage from "./features/admin/AdminPage";
 
 export const router = createBrowserRouter([
   {
@@ -62,6 +63,14 @@ export const router = createBrowserRouter([
             element: (
               <ProtectedRoute allowedRoles={["Student"]}>
                 <InboxPage />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "admin",
+            element: (
+              <ProtectedRoute allowedRoles={["Admin"]}>
+                <AdminPage />
               </ProtectedRoute>
             ),
           },
