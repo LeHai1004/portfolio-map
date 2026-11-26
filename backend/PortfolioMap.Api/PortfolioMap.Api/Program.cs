@@ -107,7 +107,11 @@ builder.Services.AddScoped<IContactsService, ContactsService>();
 builder.Services.AddScoped<IInteractionService, InteractionService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IMapService, MapService>();
+<<<<<<< HEAD
 builder.Services.AddScoped<IProjectSearchService, ProjectSearchService>();
+=======
+builder.Services.AddScoped<IAdminService, AdminService>();
+>>>>>>> origin/develop
 builder.Services.AddAuthorization();
 
 // 2. CORS: cho phép giao diện React (cổng 5173) gọi API
